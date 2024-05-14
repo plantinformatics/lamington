@@ -15,6 +15,15 @@ server <- function(input, output, session) {
   deleted_samples <<- NULL
   lasso_data <<- NULL
   
+  data_path <- "../Data/"
+  
+  #Check if path exists
+  
+  if(!dir.exists(data_path))
+  {
+    dir.create(data_path,recursive = T)
+  }
+  
   ######################### Convert vcf to gds ############################
   
   output$output_text <- renderPrint(invisible())
@@ -22,7 +31,7 @@ server <- function(input, output, session) {
   observeEvent(input$convert_button, {
     
     GDS_filename <- paste(input$GDS_filename, ".gds", sep = "")
-    output_gds_path <- file.path("../Data/", GDS_filename)
+    output_gds_path <- file.path(data_path, GDS_filename)
     withProgress(message = 'Converting VCF file to GDS format', value = 0.1, {
       if (input$file_location == "Client") {
         if (is.null(input$file1)) {
@@ -47,7 +56,7 @@ server <- function(input, output, session) {
           )
           req(input$file2 != "")
         }
-        file_path <- file.path("../Data/", input$file2)
+        file_path <- file.path(data_path, input$file2)
         file_select <- file_path
       }
       incProgress(0.2, detail = "VCF File Selected")
@@ -72,7 +81,7 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$refresh_list_server, {
-    updateSelectInput(session, "file2", choices = list.files(path ="../Data/",pattern = "\\.(vcf|vcf.gz)$"))
+    updateSelectInput(session, "file2", choices = list.files(path =data_path,pattern = "\\.(vcf|vcf.gz)$"))
   })
   
   ######################### Refresh File and Check GDS file ############################
@@ -81,7 +90,7 @@ server <- function(input, output, session) {
   
   observeEvent(c(input$refresh_list,input$convert_button), {
     RV <<- NULL
-    updateSelectInput(session, "file_list1", choices = list.files(path ="../Data/",pattern = "\\.gds$"))
+    updateSelectInput(session, "file_list1", choices = list.files(path =data_path,pattern = "\\.gds$"))
   })
   
   observeEvent(input$check_file, {
@@ -91,7 +100,7 @@ server <- function(input, output, session) {
       req(input$file_list1 !="")
     }
     RV <<- NULL
-    file_path <- file.path("../Data/", input$file_list1)
+    file_path <- file.path(data_path, input$file_list1)
     tryCatch(
       {
         file_summary <- capture.output({
@@ -139,32 +148,48 @@ server <- function(input, output, session) {
         showWarningToast("No GDS file selected")
         req(input$file_list1 !="")
       }
-      file_path <- file.path("../Data/", input$file_list1)
+      file_path <- file.path(data_path, input$file_list1)
       incProgress(0.1, detail = "Starting")
-      
+      nosnps<-"No SNPs"
       if(file.exists(file_path)){
         f <- snpgdsOpen(file_path)
+        cat(file_path,"\n")
         samplesids <- read.gdsn(index.gdsn(f,"sample.id"))
+        random_ids <<- samplesids[1:input$sample_size]
         deleted_samples<<-NULL
-        
+
         tryCatch({
           incProgress(0.1, detail = "Reading File")
-          if(input$pruning == 'sample'){
-            req(input$sample_size,input$thres_size,input$maf_rate,input$missing_rate)
-            random_ids <<- samplesids[1:input$sample_size]
+          if(input$pruning == 'sample') {
+            cat("Checking input.......\n")
+            fields<-c("sample_size","thres_size","maf_rate","missing_rate","autosome")
+            cat("Input size:",input$sample_size,"\n")
             gds_summary <- capture.output({
               cat("Checking GDS file...\n")
+              cat("Samples included in filter:",random_ids,"\nFilters used:\n")
+              for(n in fields)
+                cat(n,"=",input[[n]],"\n")
               incProgress(0.1, detail = "Getting SNPSet")
-              snpset <<- snpgdsLDpruning(f,sample.id = random_ids,ld.threshold = input$thres_size,maf = as.numeric(input$maf_rate),missing.rate = as.numeric((input$missing_rate)))
+              snpset <<-snpgdsLDpruning(
+                  f,
+                  sample.id = random_ids,
+                  ld.threshold = input$thres_size,
+                  maf = as.numeric(input$maf_rate),
+                  missing.rate = as.numeric(input$missing_rate),
+                  autosome.only=input$autosome
+                )
               snpset.id <<- unlist(unname(snpset))
               incProgress(0.1, detail = "Converting SNPSet ID")
-              s <- snpgdsGetGeno(f,sample.id = random_ids,snp.id = snpset.id,with.id = TRUE)
+              s <- snpgdsGetGeno(f,
+                                 sample.id = random_ids,
+                                 snp.id = snpset.id,
+                                 with.id = TRUE)
               incProgress(0.1, detail = "Converting Geno")
-              
-              # Add row and col names
+
+              # # Add row and col names
               snps <<- data.frame(s$genotype)
-              rownames(snps) <<-s$sample.id
-              colnames(snps) <<-s$snp.id
+              rownames(snps) <<- s$sample.id
+              colnames(snps) <<- s$snp.id
               cat("Summary complete.\n")
               incProgress(0.1, detail = "Setting DataFrame")
             })
@@ -173,9 +198,11 @@ server <- function(input, output, session) {
             gds_summary <- capture.output({
               
               cat("Checking GDS file...\n")
+              cat("Samples:",samplesids,"\n")
               incProgress(0.1, detail = "Getting SNPSet")
               random_ids <<- samplesids
               snpset <<- read.gdsn(index.gdsn(f,"snp.id"))
+              cat("SNPset:",snpset,"\n")
               incProgress(0.1, detail = "Converting SNPSet ID")
               snpset.id <<- unlist(unname(snpset))
               
@@ -192,14 +219,17 @@ server <- function(input, output, session) {
           }
         },
         error = function(e) {
+          print(gds_summary)
           output$gds_summary <- renderPrint({
             return (e)
           })
         })
         snpgdsClose(f)
         incProgress(0.3, detail = "Saving DataFrame")
+        
         output$gds_summary <- renderPrint({
-          if (is.null(gds_summary)) return()
+          if (is.null(gds_summary)) 
+            return()
           gds_summary 
         })
       }
@@ -220,7 +250,7 @@ server <- function(input, output, session) {
     }
     withProgress(message = 'Regenerating Genotype Matrix', value = 0.1, {
       selected_file <- input$file_list1
-      file_path <- file.path("../Data/", selected_file)
+      file_path <- file.path(data_path, selected_file)
       
       if (file.exists(file_path)) {
         incProgress(0.1, detail = "GDs File Exists")
@@ -240,8 +270,7 @@ server <- function(input, output, session) {
           gds_summary <- capture.output({
             cat("Checking GDS file...\n")
             incProgress(0.2, detail = "Regen Genotype Matrix")
-            s <-
-              snpgdsGetGeno(f,
+            s <-snpgdsGetGeno(f,
                             sample.id = random_ids,
                             snp.id = snpset.id,
                             with.id = TRUE)
@@ -288,7 +317,7 @@ server <- function(input, output, session) {
     req(input$file_list1, input$PCA_Thread)
     withProgress(message = 'Principal Component Analysis Started', value = 0.1, {
       tryCatch({
-        file_path <- file.path("../Data/",  input$file_list1)
+        file_path <- file.path(data_path,  input$file_list1)
         incProgress(0.1, detail = "Detect File Path")
         if (file.exists(file_path)) {
           f <- snpgdsOpen(file_path)
@@ -701,7 +730,7 @@ server <- function(input, output, session) {
   output$histro <- renderPlot({
     
     req(input$file_list1)
-    file_path <- file.path("../Data/", input$file_list1)
+    file_path <- file.path(data_path, input$file_list1)
     
     if (is.null(RV)) {
       genofile <- snpgdsOpen(file_path, readonly = TRUE)
