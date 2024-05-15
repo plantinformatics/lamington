@@ -1,4 +1,4 @@
-FROM rocker/r-base:3.4.1
+FROM rocker/r-base:4.3.1
 LABEL maintainer="Muhammad T. Suhail"
  RUN apt-get update && apt-get install -y --no-install-recommends \
      sudo \
