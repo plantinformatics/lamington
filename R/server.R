@@ -790,7 +790,7 @@ server <- function(input, output, session) {
   observeEvent(input$check_memory, {
     tryCatch({
       output$java_mem <- renderPrint({
-        J("java.lang.Runtime")$getRuntime()$maxMemory() / (1024 ^ 3)
+        J("java.lang.Runtime")$getRuntime()$maxMemory() / (1024 ^ 4)
       })
     },
     error = function(e) {
