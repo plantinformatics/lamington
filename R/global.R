@@ -10,9 +10,21 @@ library(scatterD3)
 library(shinyWidgets)
 library(shinythemes)
 library(shinycssloaders)
+library(rhandsontable)
 
 # Set the maximum upload size to 10 GB
 options(shiny.maxRequestSize = 10 * 1024 ^ 3)  # 10 GB
+
+#' @title Generate plot
+#' @description Function to generate PCA plot
+#' @param x_var
+#' @param y_var
+#' @param color
+#' @param tooltip
+#' @param data_id
+#' @examples
+#' parse_btop("4A-40-AGC25TA5")
+#' @keywords btop,blast
 
 generate_plot <- function(x_var, y_var, color_var ="black", title, width, height) {
   

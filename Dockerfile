@@ -21,7 +21,7 @@ LABEL maintainer="Muhammad T. Suhail"
 
 
 RUN R -e "install.packages('BiocManager', repos='http://cran.rstudio.com/')"
-
+RUN R -e "install.packages('rhandsontable', repos='http://cran.rstudio.com/')"
 RUN R -e "install.packages(c('rJava','corehunter'), repos='http://cran.rstudio.com/')"
 
 
@@ -34,7 +34,8 @@ RUN echo "local(options(shiny.port = 3838, shiny.host = '0.0.0.0'))" > /usr/lib/
 
 
 RUN mkdir /root/app
-RUN mkdir /root/Data
+RUN mkdir /root/GDS
+RUN mkdir /root/VCFs
 COPY R /root/app
 EXPOSE 3838
 CMD ["R", "-e", "shiny::runApp('/root/app',host = '0.0.0.0', port=3838)"]
