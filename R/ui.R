@@ -168,23 +168,24 @@ navbarPage("Lamington",
              )
            )),
            ##-------------Tab panel for Genotype matrix-------------------------
-           tabPanel("Genotype Matrix", sidebarLayout(
-             sidebarPanel(
-               width = 2,
+           tabPanel(
+             "Genotype Matrix",
+             sidebarLayout(
+               sidebarPanel(
+                 width = 2,
                  radioButtons(
                    "geno_filter",
                    "Select Data:",
-                   choices = c(Complete = "complete", "Filter Data" = "sample", "Regenerate using saved data" = "regenerate"),
+                   choices = c(
+                     Complete = "complete",
+                     "Filter Data" = "sample",
+                     "Regenerate from existing data" = "regenerate"
+                   ),
                    selected = "complete"
                  ),
                  conditionalPanel(
                    condition = "input.geno_filter == 'sample'",
-                   numericInput(
-                     "sample_size",
-                     "Sample Size",
-                     value = 10,
-                     min = 1
-                   ),
+                   numericInput("sample_size", "Sample Size", value = 10, min = 1),
                    numericInput(
                      "ld_cutoff",
                      "LD - Pruning",
@@ -209,7 +210,7 @@ navbarPage("Lamington",
                      max = 0.5,
                      step = 0.01
                    )
-                ),
+                 ),
               #selectInput("autosome", "Use autosomal SNPs", selected = "TRUE", choices = c("TRUE"="TRUE","FALSE"="FALSE"))
               checkboxInput("autosome", "Autosome.only", value = FALSE),
                  conditionalPanel(

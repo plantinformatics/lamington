@@ -186,116 +186,142 @@ server <- function(input, output, session) {
       return()})
   })
   output$gds_summary <- renderPrint("Convert GDS to Genotype Matrix")
+  
+  ######################### Generate Genotype Matrix ############################
   observeEvent(input$get_geno, {
     tryCatch({
-      withProgress(message = 'Converting to Genotype Matrix', value = 0.1, {
-        if(is.null(input$gds_filelist) || input$gds_filelist == ""){
+      withProgress(message = 'Converting GDS to Genotype Matrix', value = 0.1, {
+        
+        if(is.null(input$gds_filelist) || input$gds_filelist == "")
+        {
           showWarningToast("No GDS file selected")
           req(input$gds_filelist !="")
         }
+        
         incProgress(0.1, detail = "Starting")
+        
         nosnps<-"No SNPs"
-        if(file.exists(gds_filepath)){
+        if (file.exists(gds_filepath)) {
           f <- snpgdsOpen(gds_filepath)
-          cat(gds_filepath,"\n")
-          samplesids <- read.gdsn(index.gdsn(f,"sample.id"))
-          random_ids <<- samplesids[1:input$sample_size]
-          deleted_samples<<-NULL
-            incProgress(0.1, detail = "Reading File")
-            if(input$geno_filter == 'sample') {
-              cat("Checking input.......\n")
-              fields<-c("sample_size","ld_cutoff","maf_rate","missing_rate","autosome")
-              cat("Input size:",input$sample_size,"\n")
-              gds_summary <- capture.output({
-                cat("Checking GDS file...\n")
-                cat("Samples included in filter:",random_ids,"\nFilters used:\n")
-                for(n in fields)
-                  cat(n,"=",input[[n]],"\n")
-                incProgress(0.1, detail = "Getting SNPSet")
-                snpset <<-snpgdsLDpruning(
-                  f,
-                  sample.id = random_ids,
-                  ld.threshold = input$ld_cutoff,
-                  maf = as.numeric(input$maf_rate),
-                  missing.rate = as.numeric(input$missing_rate),
-                  autosome.only=input$autosome
-                )
-                snpset.id <<- unlist(unname(snpset))
-                incProgress(0.1, detail = "Converting SNPSet ID")
-                s <- snpgdsGetGeno(f,
-                                   sample.id = random_ids,
-                                   snp.id = snpset.id,
-                                   with.id = TRUE)
-                incProgress(0.1, detail = "Converting Geno")
-                
-                # # Add row and col names
-                snps <<- data.frame(s$genotype)
-                rownames(snps) <<- s$sample.id
-                colnames(snps) <<- s$snp.id
-                #Render the table
-                cat("Summary complete.\n")
-                head(snps)
-                incProgress(0.1, detail = "Setting DataFrame")
-              })
-            }
-            else if(input$geno_filter == 'complete'){
-              gds_summary <- capture.output({
-                
-                cat("Checking GDS file...\n")
-                cat("Samples:",samplesids,"\n")
-                incProgress(0.1, detail = "Getting SNPSet")
-                random_ids <<- samplesids
-                snpset <<- read.gdsn(index.gdsn(f,"snp.id"))
-                cat("SNPset:",snpset,"\n")
-                incProgress(0.1, detail = "Converting SNPSet ID")
-                snpset.id <<- unlist(unname(snpset))
-                
-                s <- snpgdsGetGeno(f,sample.id = random_ids ,snp.id = snpset.id,with.id = TRUE)
-                incProgress(0.1, detail = "Converting Geno")
-                
-                # Add row and col names
-                snps <<- data.frame(s$genotype)
-                rownames(snps) <<-s$sample.id
-                colnames(snps) <<-s$snp.id
-                cat("Summary complete.\n")
-                incProgress(0.1, detail = "Setting DataFrame")
-              })
-            }
-            else
+          cat(gds_filepath, "\n")
+          samplesids <- read.gdsn(index.gdsn(f, "sample.id"))
+          sample_size <- input$sample_size
+          if(!is.null(deleted_samples))
+          {
+            print(paste0("Excluding deleted samples from sample list:",
+                  sum(samplesids %in% tab2$sample.id))) 
+            samplesids <- samplesids[samplesids %in% tab2$sample.id]
+          }
+          random_ids <<- samplesids[1:sample_size]
+          random_ids <<- random_ids[!is.na(random_ids)]
+          deleted_samples <<- NULL
+          incProgress(0.1, detail = "Reading File")
+          
+          if(input$geno_filter == 'sample') {
+            cat("Checking input.......\n")
+            fields <- c("sample_size",
+                        "ld_cutoff",
+                        "maf_rate",
+                        "missing_rate",
+                        "autosome")
+            cat("Input size:", input$sample_size, "\n")
+            gds_summary <- capture.output({
+              cat("Checking GDS file...\n")
+              cat("Samples included in filter:",
+                  random_ids,
+                  "\nFilters used:\n")
+              for (n in fields)
+                cat(n, "=", input[[n]], "\n")
+              incProgress(0.1, detail = "Getting SNPSet")
+              snpset <<- snpgdsLDpruning(
+                f,
+                sample.id = random_ids,
+                ld.threshold = input$ld_cutoff,
+                maf = as.numeric(input$maf_rate),
+                missing.rate = as.numeric(input$missing_rate),
+                autosome.only = input$autosome
+              )
+              snpset.id <<- unlist(unname(snpset))
+              incProgress(0.1, detail = "Converting SNPSet ID")
+              s <- snpgdsGetGeno(f,
+                                 sample.id = random_ids,
+                                 snp.id = snpset.id,
+                                 with.id = TRUE)
+              incProgress(0.1, detail = "Converting Geno")
+              
+              # # Add row and col names
+              snps <<- data.frame(s$genotype)
+              rownames(snps) <<- s$sample.id
+              colnames(snps) <<- s$snp.id
+              #Render the table
+              cat("Summary complete.\n")
+              head(snps)
+              incProgress(0.1, detail = "Setting DataFrame")
+            })
+          }
+          else if (input$geno_filter == 'complete') 
+          {
+            gds_summary <- capture.output({
+              cat("Checking GDS file...\n")
+              cat("Samples:", samplesids, "\n")
+              incProgress(0.1, detail = "Getting SNPSet")
+              random_ids <<- samplesids
+              snpset <<- read.gdsn(index.gdsn(f, "snp.id"))
+              cat("SNPset:", snpset, "\n")
+              incProgress(0.1, detail = "Converting SNPSet ID")
+              snpset.id <<- unlist(unname(snpset))
+              
+              s <- snpgdsGetGeno(f,
+                                 sample.id = random_ids ,
+                                 snp.id = snpset.id,
+                                 with.id = TRUE)
+              incProgress(0.1, detail = "Converting Geno")
+              
+              # Add row and col names
+              snps <<- data.frame(s$genotype)
+              rownames(snps) <<- s$sample.id
+              colnames(snps) <<- s$snp.id
+              cat("Summary complete.\n")
+              incProgress(0.1, detail = "Setting DataFrame")
+            })
+          }
+          else
+          {
+            if (is.null(snpset.id) || is.null(random_ids)) 
             {
-              if (is.null(snpset.id) || is.null(random_ids)) {
-                if (input$pca_datafiles == TRUE)
-                  msg <-"PCA File or SNPSetID File not uploaded successfully"
-                else
-                  msg <- "No sample ID or SNPSet ID found"
-                showWarningToast(msg)
-                req(random_ids, snpset.id)
-              }
-              incProgress(0.1, detail = "Sample ID & SNPSet ID ok")
-                f <- snpgdsOpen(gds_filepath)
-                gds_summary <- capture.output({
-                  cat("Checking GDS file...\n")
-                  incProgress(0.2, detail = "Regenerate Genotype Matrix")
-                  s <-snpgdsGetGeno(f,
-                                    sample.id = random_ids,
-                                    snp.id = snpset.id,
-                                    with.id = TRUE)
-                  
-                  # Add row and col names
-                  incProgress(0.2, detail = "Genotype Matrix Complete")
-                  snps <<- data.frame(s$genotype)
-                  rownames(snps) <<- s$sample.id
-                  colnames(snps) <<- s$snp.id
-                  cat("Summary complete.\n")
-                  incProgress(0.2, detail = "Saving DataFrame")
-                })
+              if (input$pca_datafiles == TRUE)
+                msg <- "PCA File or SNPSetID File not uploaded successfully"
+              else
+                msg <- "No sample ID or SNPSet ID found"
+              showWarningToast(msg)
+              req(random_ids, snpset.id)
             }
+            
+            incProgress(0.1, detail = "Sample ID & SNPSet ID ok")
+            
+            gds_summary <- capture.output({
+              cat("Checking GDS file...\n")
+              incProgress(0.2, detail = "Regenerate Genotype Matrix")
+              
+              s <- snpgdsGetGeno(f,
+                                 sample.id = random_ids,
+                                 snp.id = snpset.id,
+                                 with.id = TRUE)
+              
+              # Add row and col names
+              incProgress(0.2, detail = "Genotype Matrix Complete")
+              snps <<- data.frame(s$genotype)
+              rownames(snps) <<- s$sample.id
+              colnames(snps) <<- s$snp.id
+              cat("Summary complete.\n")
+              incProgress(0.2, detail = "Saving DataFrame")
+            })
+          }
           snpgdsClose(f)
           incProgress(0.3, detail = "Saving DataFrame")
           output$gds_summary <- renderPrint({
-            if (is.null(gds_summary)) 
-              return()
-            gds_summary 
+            if (is.null(gds_summary)){return()}
+            gds_summary
           })
         }
         else{
@@ -308,73 +334,12 @@ server <- function(input, output, session) {
       },
       error = function(e) {
         output$gds_summary <- renderPrint({
-          return (e)
-        })
-    })
-    })
-  
-  ######################### Regenerate Geno ############################
-  
-  observeEvent(input$regeno, {
-    
-    if (is.null(input$gds_filelist) || input$gds_filelist == "") {
-      showWarningToast("No GDS file selected")
-      req(input$gds_filelist != "")
-    }
-    withProgress(message = 'Regenerating Genotype Matrix', value = 0.1, {
-      selected_file <- input$gds_filelist
-      gds_filepath <- file.path(data_path, selected_file)
-      
-      if (file.exists(gds_filepath)) {
-        incProgress(0.1, detail = "GDs File Exists")
-        if (is.null(snpset.id) || is.null(random_ids)) {
-          if (input$pca_datafiles == TRUE)
-            msg <-"PCA File or SNPSetID File not uploaded successfully"
-          else
-            msg <- "No sample ID or SNPSet ID found"
-          showWarningToast(msg)
-          req(random_ids, snpset.id)
-        }
-        
-        incProgress(0.1, detail = "Sample ID & SNPSet ID ok")
-        tryCatch({
-          f <- snpgdsOpen(gds_filepath)
-          gds_summary <- capture.output({
-            cat("Checking GDS file...\n")
-            incProgress(0.2, detail = "Regen Genotype Matrix")
-            s <-snpgdsGetGeno(f,
-                              sample.id = random_ids,
-                              snp.id = snpset.id,
-                              with.id = TRUE)
-            
-            # Add row and col names
-            incProgress(0.2, detail = "Genotype Matrix Complete")
-            snps <<- data.frame(s$genotype)
-            rownames(snps) <<- s$sample.id
-            colnames(snps) <<- s$snp.id
-            cat("Summary complete.\n")
-            incProgress(0.2, detail = "Saving DataFrame")
-          })
           snpgdsClose(f)
-          output$gds_summary <- renderPrint({
-            gds_summary
-          })
-        },
-        error = function(e) {
-          snpgdsClose(f)
-          output$gds_summary <- renderPrint({
-            return (e)
-          })
+          return (paste0("Error generating genotype matrix with the error:",e))
         })
-      }
-      else {
-        output$gds_summary <- renderPrint({
-          return ("Selected file not found.")
-        })
-      }
     })
-    
-  })
+})
+  
   
   ################################# Run PCA Process #################################
   
@@ -397,6 +362,7 @@ server <- function(input, output, session) {
           incProgress(0.1, detail = "Starting PCA function")
           pca_summary <- capture.output({
             cat("Checking GDS file...\n")
+            #cat("Samples included in the PCA",paste0(random_ids,collapse = ", ","\n"))
             pca <<-
               snpgdsPCA(
                 f,
@@ -614,6 +580,11 @@ server <- function(input, output, session) {
           sep = input$sep,
           quote = input$quote
         )
+        b <- colnames(pop_data)
+        updateSelectInput(session, "sample_id",
+                          choices = b)
+        updateSelectInput(session, "population_key",
+                          choices = b)
         #Render the table
         output$pop_table <- renderDT({
           datatable(pop_data, options = list(iDisplayLength = 50),editable = T)
@@ -641,6 +612,11 @@ server <- function(input, output, session) {
                 options = list(iDisplayLength = 50))
     })
     pop_data <<- pop_data_live$df
+    b <- colnames(pop_data)
+    updateSelectInput(session, "sample_id",
+                      choices = b)
+    updateSelectInput(session, "population_key",
+                      choices = b)
   })
   
   #Option to edit individual cells
@@ -837,13 +813,12 @@ server <- function(input, output, session) {
   
   observe({
     tryCatch(
-      {
+    {
       selectedOption <- input$gds_filelist
       RV <<- NULL
       output$GDS_sample <- renderText({
         invisible()
       })
-      
       output$GDS_snps <- renderText({
         invisible()
       })
