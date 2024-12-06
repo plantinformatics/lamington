@@ -15,7 +15,7 @@ navbarPage("Lamington",
                  multiple = FALSE,
                  accept = c("csv", ".csv")
                ),
-               checkboxInput("pop_adv", "Options", FALSE),
+               checkboxInput("pop_adv", "File options", FALSE),
                tags$hr(),
                #-----------Add options for table ---------------
                conditionalPanel(
@@ -46,22 +46,41 @@ navbarPage("Lamington",
                #-------Option to add more columns to the data frame-------
                conditionalPanel(
                  condition = "output.csvtest",
-                 textInput("column_name", "New column:", value = ""),
+                 tags$h4("Update population data"),
+                 textInput("column_name", "New column name:", value = ""),
                  actionButton("add_toDF", "Add new column to data"),
                  tags$hr()
                ),
+               
                conditionalPanel(
-                 condition = "output.pop_colname",
-                 textInput("pop_groupname", "New value:", value = ""),
-                 actionButton("update_popcolum", "Update selected rows"),
-                 tags$hr()
-               )
+                 condition="input.add_toDF > 0 & input.column_name!=''",
+                 radioButtons(
+                   "updateopt",
+                   "Option to update table",
+                   choices = c(
+                     "Select rows in table" = 'ids_selected',
+                     "Paste list of IDs to update" = "ids_pasted"
+                   ),
+                   selected = 'ids_selected'
+                 ),
+               ),
+               conditionalPanel(
+                 condition="input.updateopt == 'ids_pasted'",
+                 # Text input for new column values
+                 textAreaInput("pastedIds", "Enter IDs as single lines:", rows = 5)
+               ),
+                uiOutput("selsampleID"),
+                uiOutput("popColnameText"),
+                uiOutput("popColnameBtn"),
+                tags$hr()
              ),
              mainPanel(
                DTOutput("pop_table") %>% shinycssloaders::withSpinner(2, custom.css = TRUE),
+               # Button to clear selected rows (conditionally displayed)
+               uiOutput("clearButton"),
                tags$hr(),
-               textOutput("csvtest"),
-               textOutput("pop_colname")
+               #textOutput("csvtest"),
+               #textOutput("pop_colname")
                #tableOutput("contents") %>% shinycssloaders::withSpinner(2, custom.css = TRUE)
              )
            )),

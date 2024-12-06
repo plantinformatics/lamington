@@ -527,7 +527,7 @@ server <- function(input, output, session) {
   #########################Add population data ##################
   output$csvtest <- reactive({
     !is.null(input$csv_file)})
-
+  outputOptions(output, "csvtest", suspendWhenHidden = FALSE)
   output$pop_table <- renderTable(NULL)
   output$tab2_df <- renderTable(NULL)
   #This needs to be updated - doesn't ,m
@@ -597,14 +597,24 @@ server <- function(input, output, session) {
   output$contents <- renderTable(NULL)
   
   output$final_df <- renderDT(NULL)
-  #Event to handle the addition of a new column
+  
+  #Event to handle the addition of a new column to the population data table
   observeEvent(input$add_toDF,{
+   
     # Reactive value to store the data
     pop_data_live <- reactiveValues(df = pop_data)
     # Update the data after editing the table
-    if (input$column_name != "") {
-      pop_data_live$df[, input$column_name] <- ""  # Add a new column with NA values
+    if (is.null(input$column_name)||input$column_name=="") {
+      show_toast(
+        title = "No name provided!",
+        text = "Enter the name of the column to add",
+        type = "error",
+        position = "center"
+      )
+       
+     req(input$column_name)
     }
+    pop_data_live$df[, input$column_name] <- ""  # Add a new column with no values
     #Render the table
     output$pop_table <- renderDT({
       datatable(pop_data_live$df, editable = TRUE,
@@ -630,16 +640,88 @@ server <- function(input, output, session) {
   
   #Check if rows have been selected
   observeEvent(input$pop_table_rows_selected,{
+    #Check if rows have been selected
+    if(length(input$pop_table_rows_selected)>0)
+    {
+      updateRadioButtons(session, "updateopt", selected = "ids_selected")
+      updateTextAreaInput(session,"pastedIds",value = "")
+    }
+    
     output$pop_colname <- reactive({
       !is.null(input$column_name)||input$column_name!=''
     })
+    outputOptions(output, "pop_colname", suspendWhenHidden = FALSE)
   })
   
-  #Option to add values to new column
-  observeEvent(input$update_popcolum, {
-    req(input$pop_table_rows_selected)
+  #Check option used for updating table
+  observeEvent(input$updateopt,{
+    if(input$updateopt=="ids_pasted")
+    {
+      dataTableProxy("pop_table") %>% selectRows(NULL)
+    }
+    else{
+      updateTextAreaInput(session,"pastedIds",value = "")
+    }
+  })
+
+  # Render the "Clear Selection" button conditionally
+  output$clearButton <- renderUI({
+    if (length(input$pop_table_rows_selected) > 0) {
+      actionButton("clear_selection", "Clear Selection")
+    }
+  })
+  
+#Conditionally render text input and update button 
+  output$selsampleID <- renderUI({
+    if (input$pastedIds != "")
+    {
+      selectInput("selsampleId",
+                  label = "Select Sample ID column",
+                  choices = colnames(pop_data))
+    }
+  })
+  
+output$popColnameText<-renderUI({
+    if((input$pastedIds!="" || length(input$pop_table_rows_selected))& input$column_name!="")
+    {
+      textInput("pop_groupname", "New value:", value = "")
+    }
+})
+
+output$popColnameBtn<-renderUI({
+  if((input$pastedIds!="" || length(input$pop_table_rows_selected))& input$column_name!="")
+  {
+    actionButton("update_popcolum", "Update selected rows")
+  }
+})
+  
+  
+observeEvent(input$clear_selection,{
+    dataTableProxy("pop_table") %>% selectRows(NULL)
+})
+  
+#Option to new add values to new column
+observeEvent(input$update_popcolum, {
     tryCatch({
+      if(input$pop_groupname==""||is.null(input$pop_groupname))
+      {
+        show_toast(
+          title = "No value provided!",
+          text = "Enter new value to be applied to selected IDs",
+          type = "error",
+          position = "center"
+        )
+        #runjs("$('#pop_groupname').focus();")
+        req(input$pop_groupname)
+      }
+      
       info <- input$pop_table_rows_selected
+      
+      if(input$pastedIds!="")
+      {
+        info<-trimws(strsplit(input$pastedIds,"\\n")[[1]])
+        info <- which(pop_data[,input$selsampleId] %in% info)
+      }
       pop_data[info, input$column_name] <<- input$pop_groupname
       #Render the table
       output$pop_table <- renderDT({
@@ -647,10 +729,11 @@ server <- function(input, output, session) {
                   options = list(iDisplayLength = 50),
                   editable = T)
       })
+      
     }, error = function(e) {
       stop(safeError(e))
     })
-  })
+})
   
 
   
