@@ -3,13 +3,13 @@ source("global.R")
 
 server <- function(input, output, session) {
   #Session based variables
-  df <- NULL
+  histo.df <- NULL
   RV <<- NULL
   tab2 <<- NULL
   pca <<- NULL
   random_ids <<- NULL
   snpset <<- NULL
-  geno <<- NULL 
+  geno <<- NULL
   snpset.id <<- NULL #Global variable that holds a set of SNP Ids
   snps <<- NULL
   deleted_samples <<- NULL
@@ -17,20 +17,23 @@ server <- function(input, output, session) {
   pop_data <<- NULL #Variable holding the population data
   pop_data_live <<- NULL
   gds_filepath <<- "" #Path to selected GDS file
-  gds_data <<- NULL #GDS data 
+  gds_data <<- NULL #GDS data
   data_path <- "../GDS/" #Path where all GDS files are saved
   vcf_path <- "../VCFs/" #Path where VCF files can be saved and uploaded directly to Lamington
+  histogroupcol<<-NULL #variable to hold column in population data table
+  histosamplecol<<-NULL 
+
   
   #Check if paths exists
-  if(!dir.exists(data_path))
+  if (!dir.exists(data_path))
   {
-    dir.create(data_path,recursive = T)
+    dir.create(data_path, recursive = T)
   }
-
-  if(!dir.exists(vcf_path))
+  
+  if (!dir.exists(vcf_path))
   {
-    dir.create(vcf_path,recursive = T)
-  }    
+    dir.create(vcf_path, recursive = T)
+  }
   
   ######################### Convert vcf to GDS format ############################
   output$output_text <- renderPrint(invisible())
@@ -42,7 +45,7 @@ server <- function(input, output, session) {
     tryCatch({
       withProgress(message = 'Converting VCF file to GDS format', value = 0.1, {
         if (input$file_location == "Client") {
-          if (is.null(input$vcf_desktop)){
+          if (is.null(input$vcf_desktop)) {
             show_toast(
               title = "No VCF file selected!",
               text = "Select and load a VCF file from the Desktop",
@@ -67,12 +70,11 @@ server <- function(input, output, session) {
           file_select <- file.path(vcf_path, input$vcf_server)
         }
         incProgress(0.2, detail = "VCF File Selected")
-      
+        
         output_text <- capture.output({
           cat("Converting VCF to GDS...\n")
           incProgress(0.1, detail = "Processing..This may take a while...")
-          snpgdsVCF2GDS_R(file_select, output_gds_path,
-                          method = "biallelic.only")
+          snpgdsVCF2GDS_R(file_select, output_gds_path, method = "biallelic.only")
           cat("Conversion complete.\n")
           incProgress(0.3, detail = "Completing..")
         })
@@ -80,12 +82,12 @@ server <- function(input, output, session) {
           output_text
         })
       })
-      }
-      ,error = function(e) {
-        output$output_text <- renderPrint({
-          return (e)
-        })
-        
+    }
+    , error = function(e) {
+      output$output_text <- renderPrint({
+        return (e)
+      })
+      
     })
   })
   
@@ -95,7 +97,7 @@ server <- function(input, output, session) {
                       choices = list.files(path = data_path, pattern = "\\.(vcf|vcf.gz)$"))
   })
   
-  ######################### Refresh File and Check GDS file ############################
+  ######################### Refresh file and Check GDS file ############################
   
   output$file_summary <- renderPrint(invisible())
   
@@ -107,109 +109,104 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$check_file, {
-    
-    if(is.null(input$gds_filelist) || input$gds_filelist == ""){
+    if (is.null(input$gds_filelist) || input$gds_filelist == "") {
       showWarningToast("No GDS file selected")
-      req(input$gds_filelist !="")
+      req(input$gds_filelist != "")
     }
     RV <<- NULL
     gds_filepath <<- file.path(data_path, input$gds_filelist)
-    tryCatch(
-      {
-        #Capture GDS summary details
-        gds_summary <- capture.output({
-          cat("Checking GDS file...\n")
-          gdsinfo <-snpgdsSummary(gds_filepath)
-          cat("Summary complete.\n")
-        })
-        
-        output$file_summary <- renderPrint({
-          gds_summary
-        })
-        sam <- length(gdsinfo$sample.id)
-        snp_len <- length(gdsinfo$snp.id)
-        updateNumericInput(session,"sample_size",value = sam)
-        output$GDS_sample <- renderText({
-          sam
-        })
-        
-        output$GDS_snps <- renderText({
-          snp_len
-        })
-        
-      },
-      error = function(e) {
-        # return a safeError if a parsing error occurs
-        output$file_summary <- renderPrint({
-          return (paste0("Conversion of VCF file to GDS file failed with the error:",e))
-        })
-      }
-    )
+    tryCatch({
+      #Capture GDS summary details
+      gds_summary <- capture.output({
+        cat("Checking GDS file...\n")
+        gdsinfo <- snpgdsSummary(gds_filepath)
+        cat("Summary complete.\n")
+      })
+      
+      output$file_summary <- renderPrint({
+        gds_summary
+      })
+      sam <- length(gdsinfo$sample.id)
+      gds.samples<<-gdsinfo$sample.id
+      snp_len <- length(gdsinfo$snp.id)
+      updateNumericInput(session, "sample_size", value = sam)
+      output$GDS_sample <- renderText({
+        sam
+      })
+      
+      output$GDS_snps <- renderText({
+        snp_len
+      })
+      
+    }, error = function(e) {
+      # return a safeError if a parsing error occurs
+      output$file_summary <- renderPrint({
+        return (paste0(
+          "Conversion of VCF file to GDS file failed with the error:",
+          e
+        ))
+      })
+    })
   })
   
   ##Code to render population data upon selection of GDS data
   output$file_summary <- renderTable({
     req(input$csv_file)
-    tryCatch(
-      {
-        
-        b <- colnames(pop_data)
-        c<-colnames(tab2)
-        updateSelectInput(session, "data_primarykey",
-                          choices = c)
-        updateSelectInput(session, "sample_id",
-                          choices = b)
-        updateSelectInput(session, "population_key",
-                          choices = b)
-        cat("Checking population data\n")
-      },
-      error = function(e) {
-        stop(paste0("Error when rendering population details:",safeError(e)))
-      }
-    )
+    tryCatch({
+      b <- colnames(pop_data)
+      c <- colnames(tab2)
+      updateSelectInput(session, "data_primarykey", choices = c)
+      updateSelectInput(session, "sample_id", choices = b)
+      updateSelectInput(session, "population_key", choices = b)
+      cat("Checking population data\n")
+    }, error = function(e) {
+      stop(paste0("Error when rendering population details:", safeError(e)))
+    })
   })
   
-
   
-  ######################### Genotype Matrix ############################
+  
+  #########################Genotype Matrix############################
   output$autosome_out <- renderText({
     paste("Autosome.only :", input$autosome)
   })
   
   output$check_geno <- reactive({
-    check<-is.null(snps) & input$gds_filelist != ''
-    cat("Check SNP DF status;",check,"\n")
+    check <- is.null(snps) & input$gds_filelist != ''
+    cat("Check SNP DF status;", check, "\n")
     return(check)
   })
-  observeEvent(input$geno_filter,{
+  observeEvent(input$geno_filter, {
     output$final_df <- renderDT({
-      return()})
+      return()
+    })
   })
   output$gds_summary <- renderPrint("Convert GDS to Genotype Matrix")
   
-  ######################### Generate Genotype Matrix ############################
+  #########################Generate Genotype Matrix############################
   observeEvent(input$get_geno, {
     tryCatch({
       withProgress(message = 'Converting GDS to Genotype Matrix', value = 0.1, {
-        
-        if(is.null(input$gds_filelist) || input$gds_filelist == "")
+        if (is.null(input$gds_filelist) || input$gds_filelist == "")
         {
           showWarningToast("No GDS file selected")
-          req(input$gds_filelist !="")
+          req(input$gds_filelist != "")
         }
         
         incProgress(0.1, detail = "Starting")
         
-        nosnps<-"No SNPs"
+        nosnps <- "No SNPs"
         if (file.exists(gds_filepath)) {
           f <- snpgdsOpen(gds_filepath)
           cat(gds_filepath, "\n")
           samplesids <- read.gdsn(index.gdsn(f, "sample.id"))
           sample_size <- input$sample_size
-          if(!is.null(deleted_samples))
+          if (!is.null(deleted_samples))
           {
-            print(paste0("Excluding deleted samples from sample list:",
-                  sum(samplesids %in% tab2$sample.id))) 
+            print(paste0(
+              "Excluding deleted samples from sample list:",
+              sum(samplesids %in% tab2$sample.id)
+            ))
             samplesids <- samplesids[samplesids %in% tab2$sample.id]
           }
           random_ids <<- samplesids[1:sample_size]
@@ -217,7 +214,7 @@ server <- function(input, output, session) {
           deleted_samples <<- NULL
           incProgress(0.1, detail = "Reading File")
           
-          if(input$geno_filter == 'sample') {
+          if (input$geno_filter == 'sample') {
             cat("Checking input.......\n")
             fields <- c("sample_size",
                         "ld_cutoff",
@@ -243,10 +240,12 @@ server <- function(input, output, session) {
               )
               snpset.id <<- unlist(unname(snpset))
               incProgress(0.1, detail = "Converting SNPSet ID")
-              s <- snpgdsGetGeno(f,
-                                 sample.id = random_ids,
-                                 snp.id = snpset.id,
-                                 with.id = TRUE)
+              s <- snpgdsGetGeno(
+                f,
+                sample.id = random_ids,
+                snp.id = snpset.id,
+                with.id = TRUE
+              )
               incProgress(0.1, detail = "Converting Geno")
               
               # # Add row and col names
@@ -259,7 +258,7 @@ server <- function(input, output, session) {
               incProgress(0.1, detail = "Setting DataFrame")
             })
           }
-          else if (input$geno_filter == 'complete') 
+          else if (input$geno_filter == 'complete')
           {
             gds_summary <- capture.output({
               cat("Checking GDS file...\n")
@@ -271,10 +270,12 @@ server <- function(input, output, session) {
               incProgress(0.1, detail = "Converting SNPSet ID")
               snpset.id <<- unlist(unname(snpset))
               
-              s <- snpgdsGetGeno(f,
-                                 sample.id = random_ids ,
-                                 snp.id = snpset.id,
-                                 with.id = TRUE)
+              s <- snpgdsGetGeno(
+                f,
+                sample.id = random_ids ,
+                snp.id = snpset.id,
+                with.id = TRUE
+              )
               incProgress(0.1, detail = "Converting Geno")
               
               # Add row and col names
@@ -287,7 +288,7 @@ server <- function(input, output, session) {
           }
           else
           {
-            if (is.null(snpset.id) || is.null(random_ids)) 
+            if (is.null(snpset.id) || is.null(random_ids))
             {
               if (input$pca_datafiles == TRUE)
                 msg <- "PCA File or SNPSetID File not uploaded successfully"
@@ -302,11 +303,12 @@ server <- function(input, output, session) {
             gds_summary <- capture.output({
               cat("Checking GDS file...\n")
               incProgress(0.2, detail = "Regenerate Genotype Matrix")
-              
-              s <- snpgdsGetGeno(f,
-                                 sample.id = random_ids,
-                                 snp.id = snpset.id,
-                                 with.id = TRUE)
+              s <- snpgdsGetGeno(
+                f,
+                sample.id = random_ids,
+                snp.id = snpset.id,
+                with.id = TRUE
+              )
               
               # Add row and col names
               incProgress(0.2, detail = "Genotype Matrix Complete")
@@ -320,7 +322,9 @@ server <- function(input, output, session) {
           snpgdsClose(f)
           incProgress(0.3, detail = "Saving DataFrame")
           output$gds_summary <- renderPrint({
-            if (is.null(gds_summary)){return()}
+            if (is.null(gds_summary)) {
+              return()
+            }
             gds_summary
           })
         }
@@ -331,22 +335,22 @@ server <- function(input, output, session) {
         }
         
       })
-      },
-      error = function(e) {
-        output$gds_summary <- renderPrint({
-          snpgdsClose(f)
-          return (paste0("Error generating genotype matrix with the error:",e))
-        })
+    }, error = function(e) {
+      output$gds_summary <- renderPrint({
+        snpgdsClose(f)
+        return (paste0("Error generating genotype matrix with the error:", e))
+      })
     })
-})
+  })
   
   
   ################################# Run PCA Process #################################
   
   output$pca_summary <- renderPrint(return())
-  output$pca_dt<-renderDataTable(return())
+  output$pca_dt <- renderDataTable(return())
   output$pca_status <- reactive({
-    !is.null(pca)})
+    !is.null(pca)
+  })
   
   observeEvent(input$get_PCA, {
     if (is.null(input$gds_filelist) || input$gds_filelist == "") {
@@ -355,7 +359,7 @@ server <- function(input, output, session) {
     req(input$gds_filelist, input$PCA_Thread)
     withProgress(message = 'Principal Component Analysis Started', value = 0.1, {
       tryCatch({
-        gds_filepath <- file.path(data_path,  input$gds_filelist)
+        gds_filepath <- file.path(data_path, input$gds_filelist)
         incProgress(0.1, detail = "Detect File Path")
         if (file.exists(gds_filepath)) {
           f <- snpgdsOpen(gds_filepath)
@@ -390,11 +394,9 @@ server <- function(input, output, session) {
           output$pca_summary <- renderPrint({
             pca_summary
           })
-          output$pca_dt<-renderDataTable(
-            datatable(tab2,editable = F))
-          c<-colnames(tab2)
-          updateSelectInput(session, "data_primarykey",
-                            choices = c)
+          output$pca_dt <- renderDataTable(datatable(tab2, editable = F))
+          c <- colnames(tab2)
+          updateSelectInput(session, "data_primarykey", choices = c)
         }
         else {
           output$pca_summary <- renderPrint({
@@ -403,9 +405,9 @@ server <- function(input, output, session) {
           })
         }
         output$pca_status <- reactive({
-          !is.null(pca)})
-      },
-      error = function(e) {
+          !is.null(pca)
+        })
+      }, error = function(e) {
         snpgdsClose(f)
         output$pca_summary <- renderPrint({
           return (e)
@@ -422,10 +424,8 @@ server <- function(input, output, session) {
       tab2 <<- tab2  %>%
         left_join(pop_data, by = input$data_primarykey) %>%
         select(colnames(tab2) , input$population_key)
-      output$pca_dt<-renderDataTable(
-        datatable(tab2,editable = F))
-    },
-    error = function(e) {
+      output$pca_dt <- renderDataTable(datatable(tab2, editable = F))
+    }, error = function(e) {
       stop(safeError(e))
     })
     output$final_df <- renderTable({
@@ -438,7 +438,7 @@ server <- function(input, output, session) {
     })
   })
   
-  ################################# Run Core Hunter ################################# 
+  ################################# Run Core Hunter #################################
   
   output$hunter_summary <- renderText("")
   
@@ -509,7 +509,11 @@ server <- function(input, output, session) {
           incProgress(0.1, detail = "Initialize Core Hunter data")
           mydata <- coreHunterData(genotypes = geno)
           core <-
-            sampleCoresAtSizes(mydata, core, always_vector, never_vector, objectives)
+            sampleCoresAtSizes(mydata,
+                               core,
+                               always_vector,
+                               never_vector,
+                               objectives)
           incProgress(0.3, detail = "Cores Calculated")
           cat("Complete.\n")
         })
@@ -526,7 +530,8 @@ server <- function(input, output, session) {
   
   #########################Add population data ##################
   output$csvtest <- reactive({
-    !is.null(input$csv_file)})
+    !is.null(input$csv_file)
+  })
   outputOptions(output, "csvtest", suspendWhenHidden = FALSE)
   output$pop_table <- renderTable(NULL)
   output$tab2_df <- renderTable(NULL)
@@ -548,8 +553,7 @@ server <- function(input, output, session) {
   observeEvent(input$data_file2, {
     tryCatch({
       snpset.id <<- readRDS(input$data_file2$datapath)
-    },
-    error = function(e) {
+    }, error = function(e) {
       stop(safeError(e))
     })
   })
@@ -562,33 +566,33 @@ server <- function(input, output, session) {
       })
     })
     output$final_df <- renderDT({
-      datatable(tab2,editable = F)
+      datatable(tab2, editable = F)
     })
   })
   #List of events to listen on to read population file
   toListen <- reactive({
-    list(input$csv_file, input$header,input$sep,input$quote) 
+    list(input$csv_file, input$header, input$sep, input$quote)
   })
   
   #Read population file
-  observeEvent(toListen(),{
+  observeEvent(toListen(), {
     req(input$csv_file)
     tryCatch({
-        pop_data <<- read.csv(
-          input$csv_file$datapath,
-          header = input$header,
-          sep = input$sep,
-          quote = input$quote
-        )
-        b <- colnames(pop_data)
-        updateSelectInput(session, "sample_id",
-                          choices = b)
-        updateSelectInput(session, "population_key",
-                          choices = b)
-        #Render the table
-        output$pop_table <- renderDT({
-          datatable(pop_data, options = list(iDisplayLength = 50),editable = T)
-        })
+      pop_data <<- read.csv(
+        input$csv_file$datapath,
+        header = input$header,
+        sep = input$sep,
+        quote = input$quote
+      )
+      b <- colnames(pop_data)
+      updateSelectInput(session, "sample_id", choices = b)
+      updateSelectInput(session, "population_key", choices = b)
+      #Render the table
+      output$pop_table <- renderDT({
+        datatable(pop_data,
+                  options = list(iDisplayLength = 50),
+                  editable = T)
+      })
     }, error = function(e) {
       stop(safeError(e))
     })
@@ -599,34 +603,34 @@ server <- function(input, output, session) {
   output$final_df <- renderDT(NULL)
   
   #Event to handle the addition of a new column to the population data table
-  observeEvent(input$add_toDF,{
-   
+  observeEvent(input$add_toDF, {
     # Reactive value to store the data
     pop_data_live <- reactiveValues(df = pop_data)
     # Update the data after editing the table
-    if (is.null(input$column_name)||input$column_name=="") {
+    if (is.null(input$column_name) || input$column_name == "") {
       show_toast(
         title = "No name provided!",
         text = "Enter the name of the column to add",
         type = "error",
         position = "center"
       )
-       
-     req(input$column_name)
+      
+      req(input$column_name)
     }
     pop_data_live$df[, input$column_name] <- ""  # Add a new column with no values
     #Render the table
     output$pop_table <- renderDT({
-      datatable(pop_data_live$df, editable = TRUE,
-                caption = "Population data",
-                options = list(iDisplayLength = 50))
+      datatable(
+        pop_data_live$df,
+        editable = TRUE,
+        caption = "Population data",
+        options = list(iDisplayLength = 50)
+      )
     })
     pop_data <<- pop_data_live$df
     b <- colnames(pop_data)
-    updateSelectInput(session, "sample_id",
-                      choices = b)
-    updateSelectInput(session, "population_key",
-                      choices = b)
+    updateSelectInput(session, "sample_id", choices = b)
+    updateSelectInput(session, "population_key", choices = b)
   })
   
   #Option to edit individual cells
@@ -639,31 +643,31 @@ server <- function(input, output, session) {
   })
   
   #Check if rows have been selected
-  observeEvent(input$pop_table_rows_selected,{
+  observeEvent(input$pop_table_rows_selected, {
     #Check if rows have been selected
-    if(length(input$pop_table_rows_selected)>0)
+    if (length(input$pop_table_rows_selected) > 0)
     {
       updateRadioButtons(session, "updateopt", selected = "ids_selected")
-      updateTextAreaInput(session,"pastedIds",value = "")
+      updateTextAreaInput(session, "pastedIds", value = "")
     }
     
     output$pop_colname <- reactive({
-      !is.null(input$column_name)||input$column_name!=''
+      !is.null(input$column_name) || input$column_name != ''
     })
     outputOptions(output, "pop_colname", suspendWhenHidden = FALSE)
   })
   
   #Check option used for updating table
-  observeEvent(input$updateopt,{
-    if(input$updateopt=="ids_pasted")
+  observeEvent(input$updateopt, {
+    if (input$updateopt == "ids_pasted")
     {
       dataTableProxy("pop_table") %>% selectRows(NULL)
     }
     else{
-      updateTextAreaInput(session,"pastedIds",value = "")
+      updateTextAreaInput(session, "pastedIds", value = "")
     }
   })
-
+  
   # Render the "Clear Selection" button conditionally
   output$clearButton <- renderUI({
     if (length(input$pop_table_rows_selected) > 0) {
@@ -671,39 +675,43 @@ server <- function(input, output, session) {
     }
   })
   
-#Conditionally render text input and update button 
+  #Conditionally render text input and update button
   output$selsampleID <- renderUI({
     if (input$pastedIds != "")
     {
       selectInput("selsampleId",
-                  label = "Select Sample ID column",
+                  label = "Select Sample ID column:",
                   choices = colnames(pop_data))
     }
   })
   
-output$popColnameText<-renderUI({
-    if((input$pastedIds!="" || length(input$pop_table_rows_selected))& input$column_name!="")
+  output$popColnameText <- renderUI({
+    if ((input$pastedIds != "" ||
+         length(input$pop_table_rows_selected)) &
+        input$column_name != "")
     {
       textInput("pop_groupname", "New value:", value = "")
     }
-})
-
-output$popColnameBtn<-renderUI({
-  if((input$pastedIds!="" || length(input$pop_table_rows_selected))& input$column_name!="")
-  {
-    actionButton("update_popcolum", "Update selected rows")
-  }
-})
+  })
+  
+  output$popColnameBtn <- renderUI({
+    if ((input$pastedIds != "" ||
+         length(input$pop_table_rows_selected)) &
+        input$column_name != "")
+    {
+      actionButton("update_popcolum", "Update selected rows")
+    }
+  })
   
   
-observeEvent(input$clear_selection,{
+  observeEvent(input$clear_selection, {
     dataTableProxy("pop_table") %>% selectRows(NULL)
-})
+  })
   
-#Option to new add values to new column
-observeEvent(input$update_popcolum, {
+  #Option to new add values to new column
+  observeEvent(input$update_popcolum, {
     tryCatch({
-      if(input$pop_groupname==""||is.null(input$pop_groupname))
+      if (input$pop_groupname == "" || is.null(input$pop_groupname))
       {
         show_toast(
           title = "No value provided!",
@@ -717,10 +725,10 @@ observeEvent(input$update_popcolum, {
       
       info <- input$pop_table_rows_selected
       
-      if(input$pastedIds!="")
+      if (input$pastedIds != "")
       {
-        info<-trimws(strsplit(input$pastedIds,"\\n")[[1]])
-        info <- which(pop_data[,input$selsampleId] %in% info)
+        info <- trimws(strsplit(input$pastedIds, "\\n")[[1]])
+        info <- which(pop_data[, input$selsampleId] %in% info)
       }
       pop_data[info, input$column_name] <<- input$pop_groupname
       #Render the table
@@ -733,9 +741,9 @@ observeEvent(input$update_popcolum, {
     }, error = function(e) {
       stop(safeError(e))
     })
-})
+  })
   
-
+  
   
   ######################### Download Button on PCA Graph ########################
   
@@ -794,9 +802,11 @@ observeEvent(input$update_popcolum, {
       left_margin = 90,
       lasso = TRUE,
       tooltip_text = tab2[, "sample.id"],
-      caption = list(title = "",
-                     subtitle = "",
-                     text = ""),
+      caption = list(
+        title = "",
+        subtitle = "",
+        text = ""
+      ),
       lasso_callback = "function(sel) { Shiny.setInputValue('lassoSelection', sel.data().map(function(d) {return d.tooltip_text})); }"
     )
   })
@@ -810,31 +820,39 @@ observeEvent(input$update_popcolum, {
     
   })
   
-  table_fun <- function(){
+  table_fun <- function() {
     if (!is.null(lasso_data)) {
-      
-      output$table <- DT::renderDataTable(tab2[tab2$sample.id %in% lasso_data, ], filter = "top",
+      output$table <- DT::renderDataTable(tab2[tab2$sample.id %in% lasso_data, ],
+                                          filter = "top",
                                           options = list(pagelength = 10))
       output$sel_samples <- renderPrint({
         cat(lasso_data)
       })
     }
     else{
-      output$table <- DT::renderDataTable(tab2[tab2$sample.id %in% NULL, ], filter = "top",
+      output$table <- DT::renderDataTable(tab2[tab2$sample.id %in% NULL, ],
+                                          filter = "top",
                                           options = list(pagelength = 10))
     }
   }
   
   ######################### Getting points from Graph ########################
   
-  observeEvent(c(input$refresh_selection,input$data_file,input$get_PCA,input$get_core,input$add_toDF),{
-    req(tab2)
-    b <- colnames(tab2)
-    columns_to_remove <- c("sample.id", "EV1", "EV2", "EV3", "EV4")
-    b <- b[!b %in% columns_to_remove]
-    updateSelectInput(session, "title",
-                      choices = b)
-  }
+  observeEvent(
+    c(
+      input$refresh_selection,
+      input$data_file,
+      input$get_PCA,
+      input$get_core,
+      input$add_toDF
+    ),
+    {
+      req(tab2)
+      b <- colnames(tab2)
+      columns_to_remove <- c("sample.id", "EV1", "EV2", "EV3", "EV4")
+      b <- b[!b %in% columns_to_remove]
+      updateSelectInput(session, "title", choices = b)
+    }
   )
   
   observeEvent(input$delete_rows, {
@@ -844,11 +862,10 @@ observeEvent(input$update_popcolum, {
       b <- b[input$table_rows_selected, 1]
       deleted_samples <<- append(deleted_samples, b)
       
-      tab2 <<- tab2[!tab2$sample.id %in% b,]
+      tab2 <<- tab2[!tab2$sample.id %in% b, ]
       random_ids <<- random_ids[!random_ids %in% b]
       lasso_data <<- lasso_data[!lasso_data %in% b]
-    },
-    error = function(e) {
+    }, error = function(e) {
       stop(safeError(e))
     })
     
@@ -892,11 +909,53 @@ observeEvent(input$update_popcolum, {
     })
   })
   
-  ################################ Code for histograms for MAF and Missing Rate ####################################  
+  ################################ Code for histograms for MAF and Missing Rate ####################################
+  
+  observeEvent(input$csv_file,{
+    output$pophistoColname <- renderUI({
+      if (!is.null(pop_data))
+      {
+        selectInput("selgrouphisto",
+                    label = "Select group by column:",
+                    choices = colnames(pop_data))
+      }
+    })
+    
+    output$pophistosample <- renderUI({
+      if (!is.null(pop_data))
+      {
+        selectInput("selsamplehisto",
+                    label = "Select Sample ID column:",
+                    choices = sort(colnames(pop_data)))
+      }
+    })
+    
+    output$pophistoupdateBtn<-renderUI({
+      if (!is.null(pop_data))
+      {
+        actionButton("btnupdatehisto",label = "Update histogram")
+      }
+    })
+    
+  })
+  
+  #Check if column for grouping samples has been selected
+  observeEvent(input$selgrouphisto,{
+    req(pop_data)
+    output$pophistogroups <- renderUI({
+      if (!is.null(pop_data))
+      {
+        selectInput("selhistogroups",
+                    label = "Select groups to display:",
+                    choices = unique(pop_data[,input$selgrouphisto]),
+                    multiple = T)
+      }
+    })
+  })
+  
   
   observe({
-    tryCatch(
-    {
+    tryCatch({
       selectedOption <- input$gds_filelist
       RV <<- NULL
       output$GDS_sample <- renderText({
@@ -905,79 +964,180 @@ observeEvent(input$update_popcolum, {
       output$GDS_snps <- renderText({
         invisible()
       })
-    },
-    error = function(e) {
-      stop(paste0("Error when selecting MAF and Missing rate: ",safeError(e)))
+    }, error = function(e) {
+      stop(paste0("Error when selecting MAF and Missing rate: ", safeError(e)))
     })
   })
   
-  output$histo <- renderPlot({
-    
-    req(input$gds_filelist)
-    gds_filepath <- file.path(data_path, input$gds_filelist)
-    
-    if (is.null(RV)) {
-      genofile <- snpgdsOpen(gds_filepath, readonly = TRUE)
-      RV <<- snpgdsSNPRateFreq(genofile, with.snp.id = TRUE)
-      df <<- data.frame(RV)
-      snpgdsClose(genofile)
+  getHistoData<-reactive(
+  {
+      input$btnupdatehisto
+      gds_filepath <- file.path(data_path, input$gds_filelist)          
       output$filename_histo <- renderPrint({
         cat(input$gds_filelist)
       })
-    }
-    updateNumericInput(session,inputId = "missing_rate",value = input$n)
-    updateNumericInput(session,inputId = "maf_rate",value = input$maf)
+      
+      tryCatch({
+        genofile <- snpgdsOpen(gds_filepath, readonly = TRUE)  
+        if (is.null(RV)) 
+        {
+          RV <<- snpgdsSNPRateFreq(genofile, with.snp.id = TRUE)
+          histo.df <<- data.frame(RV)
+
+        }
+        else if(!is.null(histogroupcol)&!is.null(histosamplecol))
+        {   histo.df<<-NULL
+            RV<<-NULL
+            snp.len<-NULL
+            samps.len<-NULL
+            groups.selected<-as.character(input$selhistogroups)
+            if(length(groups.selected)==0)
+            {
+              groups.selected<-unique(as.character(pop_data[,histogroupcol]))
+            }
+            if(length(groups.selected)>4)
+            {
+              show_toast(
+                title = "Too many groups!",
+                text = "You have selected too many groups to visualise, try a maximum of 4",
+                type = "error",
+                position = "center"
+              )
+              histogroupcol<-histosamplecol<-NULL
+              
+              req(length(groups.selected)<=4)
+            }
+            for(g in groups.selected)
+            {
+               samples.g<-intersect(gds.samples,pop_data[pop_data[,histogroupcol] %in% g,histosamplecol])
+               RV.g<-snpgdsSNPRateFreq(genofile, with.snp.id = TRUE,sample.id = samples.g)
+               
+               df.g<-data.frame(RV.g)
+               df.g$Group<-g
+               histo.df<<-rbind(histo.df,df.g)
+               snp.len<-paste0(snp.len,paste0(g,nrow(df.g),collapse = "="),collapse = ";")
+               samps.len<-paste0(samps.len,paste0(g,length(samples.g),collapse = ";"),collapse = "=")
+               RV<<-sapply(names(RV.g),function(x){
+                 if(is.null(RV))
+                   RV.g[[x]]
+                 else
+                   c(RV[[x]],RV.g[[x]])
+               },USE.NAMES = T,simplify = F)
+            }
+            # output$GDS_sample <- renderPrint({
+            #   cat(samps.len)
+            # })
+            # output$GDS_snps <- renderPrint({
+            #   cat(snp.len)
+            # })
+          
+      }
+        snpgdsClose(genofile)  
+        
+      },error=function(e){
+        snpgdsClose(genofile)
+        stop(paste0("Error eading snpgds data file: ", safeError(e)))
+      })
+  })
+  
+  plotHisto<-function(histo.type)
+  {
+    tryCatch({
+      xlab<-"Missing rate"
+      gtitle<-"Missing Rate"
+      if(histo.type!="MissingRate")
+      {
+        xlab="Minor allele frequency"
+        gtitle<-"Minor Allele Frequency (MAF)"
+      }
+      
+      if(!is.null(histogroupcol)&!is.null(histosamplecol))
+      {
+        
+         ggplot() +
+          geom_histogram(
+            data = histo.df,
+            aes(x = get(histo.type),fill=Group),
+            binwidth = 0.01,
+            color = "black",
+            fill="black"
+          ) +
+          geom_histogram(
+            data = histo.df[histo.df$MissingRate < input$n &
+                              histo.df$MinorFreq > input$maf, ],
+            aes(x = get(histo.type),fill=Group),
+            binwidth = 0.01,
+            color="black",
+            fill="white"
+          )+
+          facet_wrap(~ Group, ncol = 2) +
+          theme(strip.text = element_text(size = 20))+
+          xlab(xlab) +
+          ggtitle(gtitle) +
+          theme_light()+
+          theme(legend.position = "none")
+      }
+      else
+      {
+        ggplot() +
+          geom_histogram(
+            data = histo.df,
+            aes(x = get(histo.type)),
+            binwidth = 0.01,
+            color = "black",
+            fill = "black"
+          ) +
+          geom_histogram(
+            data = histo.df[histo.df$MissingRate < input$n &
+                              histo.df$MinorFreq > input$maf, ],
+            aes(x = get(histo.type)),
+            binwidth = 0.01,
+            fill = "white"
+          ) + xlab(xlab) +
+          ggtitle(gtitle) +
+          theme_light()
+      }
+    },error=function(e){
+      stop(paste0("Error while generating histograms:",safeError(e)))
+    })
+  }
+  
+  output$histo <- renderPlot({
+    tryCatch({
+      req(input$gds_filelist)
+      getHistoData()
+      updateNumericInput(session, inputId = "missing_rate", value = input$n)
+      updateNumericInput(session, inputId = "maf_rate", value = input$maf)
+
+      plotHisto("MissingRate")
+      
+    }, error = function(e) {
+      histogroupcol<-histosamplecol<-NULL
+      stop(paste0("Error when generating histogram: ", safeError(e)))
+    })
     
-    ggplot() +
-      geom_histogram(
-        data = df,
-        aes(x = MissingRate),
-        binwidth = 0.01,
-        color = "black",
-        fill = "black"
-      ) +
-      geom_histogram(
-        data = df[df$MissingRate < input$n &
-                    df$MinorFreq > input$maf,],
-        aes(x = MissingRate),
-        binwidth = 0.01,
-        fill = "white"
-      ) + xlab("Missing rate") +
-      ggtitle("Missing Rate") +
-      theme_light()
   })
   
   output$histo2 <- renderPlot({
     req(input$gds_filelist)
-    ggplot() +
-      geom_histogram(
-        data = df,
-        aes(x = MinorFreq),
-        binwidth = 0.01,
-        color = "black",
-        fill = "black"
-      ) +
-      geom_histogram(
-        data = df[df$MinorFreq > input$maf &
-                    df$MissingRate < input$n, ],
-        aes(x = MinorFreq),
-        binwidth = 0.01,
-        color = "black",
-        fill = "white"
-      ) +
-      ggtitle("Minor Allele Frequency") +
-      theme_light()
+    getHistoData()
+    plotHisto("MinorFreq")
   })
   
-  ################################ Code to Get and set rJava Heap memory ####################################      
+  #Check for inputs
+  observeEvent(input$btnupdatehisto,{
+    histogroupcol<<-input$selgrouphisto
+    histosamplecol<<-input$selsamplehisto
+  })
+  
+  ################################ Code to Get and set rJava Heap memory ####################################
   
   observeEvent(input$check_memory, {
     tryCatch({
       output$java_mem <- renderPrint({
         J("java.lang.Runtime")$getRuntime()$maxMemory() / (1024 ^ 4)
       })
-    },
-    error = function(e) {
+    }, error = function(e) {
       output$java_mem <- renderPrint({
         return (e)
       })
@@ -993,8 +1153,7 @@ observeEvent(input$update_popcolum, {
         options(java.parameters = mem_size)
         library(corehunter)
       })
-    },
-    error = function(e) {
+    }, error = function(e) {
       output$java_mem <- renderPrint({
         return (e)
       })

@@ -177,13 +177,19 @@ navbarPage("Lamington",
                tags$label("Total Samples:"),
                verbatimTextOutput("GDS_sample", placeholder = TRUE),
                tags$label("Total SNPS:"),
-               verbatimTextOutput("GDS_snps", placeholder = TRUE)
-               
+               verbatimTextOutput("GDS_snps", placeholder = TRUE),
+               tags$hr(),
+               uiOutput("pophistoColname"),
+               uiOutput("pophistogroups"),
+               uiOutput("pophistosample"),
+               uiOutput("pophistoupdateBtn")
              ),
              mainPanel(
-               plotOutput(outputId = "histo") %>% shinycssloaders::withSpinner(2, custom.css = TRUE),
-               tags$hr(),
-               plotOutput(outputId = "histo2") %>% shinycssloaders::withSpinner(2, custom.css = TRUE)
+               #fluidRow(
+                 plotOutput(outputId = "histo") %>% shinycssloaders::withSpinner(2, custom.css = TRUE),
+                 tags$hr(),
+                 plotOutput(outputId = "histo2") %>% shinycssloaders::withSpinner(2, custom.css = TRUE)
+               #)
              )
            )),
            ##-------------Tab panel for Genotype matrix-------------------------
