@@ -351,6 +351,8 @@ server <- function(input, output, session) {
   output$pca_status <- reactive({
     !is.null(pca)
   })
+  outputOptions(output, "pca_status", suspendWhenHidden = FALSE)
+  
   
   observeEvent(input$get_PCA, {
     if (is.null(input$gds_filelist) || input$gds_filelist == "") {
@@ -407,6 +409,7 @@ server <- function(input, output, session) {
         output$pca_status <- reactive({
           !is.null(pca)
         })
+         outputOptions(output, "pca_status", suspendWhenHidden = FALSE)
       }, error = function(e) {
         snpgdsClose(f)
         output$pca_summary <- renderPrint({
@@ -419,11 +422,9 @@ server <- function(input, output, session) {
   observeEvent(input$add_toPCA, {
     tryCatch({
       colnames(pop_data)[colnames(pop_data) == input$sample_id] <-
-        input$data_primarykey
+      input$data_primarykey
       
-      tab2 <<- tab2  %>%
-        left_join(pop_data, by = input$data_primarykey) %>%
-        select(colnames(tab2) , input$population_key)
+      tab2 <<- inner_join(tab2, pop_data[,c(input$data_primarykey,as.character(input$population_key))], by =input$data_primarykey)
       output$pca_dt <- renderDataTable(datatable(tab2, editable = F))
     }, error = function(e) {
       stop(safeError(e))

@@ -295,7 +295,7 @@ navbarPage("Lamington",
                tags$br(),
                DTOutput("final_df")%>% shinycssloaders::withSpinner(2, custom.css = TRUE),
                tags$br(),
-               verbatimTextOutput("pca_status",placeholder = T)
+               #verbatimTextOutput("pca_status",placeholder = T)
              )
            )),
            ############################ PCA Tab ###############################################################
