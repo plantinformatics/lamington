@@ -202,8 +202,8 @@ navbarPage("Lamington",
                    "geno_filter",
                    "Select Data:",
                    choices = c(
-                     Complete = "complete",
-                     "Filter Data" = "sample",
+                     "No Filter" = "complete",
+                     "Filtering options" = "sample",
                      "Regenerate from existing data" = "regenerate"
                    ),
                    selected = "complete"
@@ -234,10 +234,20 @@ navbarPage("Lamington",
                      min = 0.001,
                      max = 0.5,
                      step = 0.01
-                   )
+                   ),
+                   checkboxInput("filtsamples", "Filter samples", value = FALSE),
+                   uiOutput("txtsamplefilt"),
+                   conditionalPanel(
+                     condition="output.filtsampselected",
+                     uiOutput("radioSampleIdfilt"),
+                     uiOutput("selectsampleIdcol"),
+                     uiOutput("selectsamplegroups"),
+                     uiOutput("selectgrouptoretain")
+                   ),
+                   tags$hr(),
                  ),
               #selectInput("autosome", "Use autosomal SNPs", selected = "TRUE", choices = c("TRUE"="TRUE","FALSE"="FALSE"))
-              checkboxInput("autosome", "Autosome.only", value = FALSE),
+              checkboxInput("autosome", "Autosome only", value = FALSE),
                  conditionalPanel(
                    condition = "input.geno_filter == 'complete'",
                    p("Using all Samples and SNP Data"),

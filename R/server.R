@@ -171,6 +171,104 @@ server <- function(input, output, session) {
     paste("Autosome.only :", input$autosome)
   })
   
+  eventsFilt <- reactive({
+    list(input$update_popcolum,input$selectpopfiltOption)
+  })
+  
+  #Add options to filter GDS matrix by samples
+  observeEvent(input$filtsamples,{
+    if(input$filtsamples)
+    {
+      output$filtsampselected <- reactive({
+        return(TRUE)
+      })
+      outputOptions(output, "filtsampselected", suspendWhenHidden = FALSE)
+      output$txtsamplefilt<-renderUI({
+        textAreaInput("samplestofiltlist",label = "Enter sample IDs to retain:")
+      })
+      if(!is.null(pop_data))
+      {
+        
+        output$radioSampleIdfilt<-renderUI({
+          radioButtons("selectpopfiltOption","Or Select from population table", 
+                      choices = c("Filter by group"="group",
+                                  "Select from table"="selfromtable"),
+                      selected ="group" 
+                      )
+        })
+        
+        output$selectsampleIdcol <- renderUI({
+          selectInput("selectsampleidcolumn",
+                      label = "Select sample ID column:",
+                      choices = colnames(pop_data))
+        })
+      }
+    }
+    else{
+      output$filtsampselected <- reactive({
+        return(F)
+      })
+      outputOptions(output, "filtsampselected", suspendWhenHidden = FALSE)
+      output$txtsamplefilt<-renderUI({
+        return()
+      })
+      output$radioSampleIdfilt<-renderUI({
+        return()
+      })
+    }
+  })
+  
+  observeEvent(input$samplestofiltlist,{
+    updateRadioButtons(session,"selectpopfiltOption",selected = character(0))
+  })
+  
+  observeEvent(eventsFilt(),{
+    req(input$gds_filelist)
+    req(input$selectpopfiltOption)
+    output$gds_summary <- renderPrint("Convert GDS to Genotype Matrix")
+    if(input$selectpopfiltOption=="group")
+    {
+      options.choose<-colnames(pop_data)
+      
+      output$selectsamplegroups<-renderUI({
+        selectInput("selSampGrpCol",
+                    label = "Select group column",
+                    choices=options.choose)
+      })
+      
+      output$final_df<-renderDT({
+        return()
+      })
+    }
+    else
+    {
+      output$selectsamplegroups<-renderUI({
+        return()
+      })
+      output$selectgrouptoretain <- renderUI({
+        return()
+      })
+      output$final_df<-renderDT({
+        getDataTable(pop_data,editable = F,caption = "Population data table")
+      })
+    }
+  })
+  
+  observeEvent(input$selSampGrpCol, {
+    if (input$selectpopfiltOption=="group")
+    {
+      output$selectgrouptoretain <- renderUI({
+        grps <- unique(pop_data[, input$selSampGrpCol])
+        selectInput(
+          "retaingroup",
+          label = "Select group samples to retain",
+          choices = grps,
+          multiple = T
+        )
+      })
+    }
+  })
+  
   output$check_geno <- reactive({
     check <- is.null(snps) & input$gds_filelist != ''
     cat("Check SNP DF status;", check, "\n")
@@ -181,9 +279,10 @@ server <- function(input, output, session) {
       return()
     })
   })
+  
   output$gds_summary <- renderPrint("Convert GDS to Genotype Matrix")
   
-  #########################Generate Genotype Matrix############################
+  #########################Generate Genotype Matrix#############################
   observeEvent(input$get_geno, {
     tryCatch({
       withProgress(message = 'Converting GDS to Genotype Matrix', value = 0.1, {
@@ -221,8 +320,34 @@ server <- function(input, output, session) {
                         "maf_rate",
                         "missing_rate",
                         "autosome")
-            cat("Input size:", input$sample_size, "\n")
+            
+            if (input$filtsamples)
+            {
+              if (input$samplestofiltlist != "")
+              {
+                samples.filt <- trimws(strsplit(input$samplestofiltlist, "\\n")[[1]])
+                random_ids <<- samples.filt
+              }
+              else if (input$selectpopfiltOption == "group")
+              {
+                cat("Filtering based on samples:\n")
+                random_ids <<- as.character(pop_data[pop_data[, input$selSampGrpCol] %in% as.character(input$retaingroup), input$selectsampleidcolumn])
+              }
+              else if (input$selectpopfiltOption == "selfromtable")
+              {
+                print(input$final_df_rows_selected)
+                random_ids <<- as.character(pop_data[input$final_df_rows_selected, input$selectsampleidcolumn])
+              }
+            }
+            
+            if(length(random_ids)==0)
+            {
+              show_toast("No IDs selected",text = "No selected sample IDs")
+              req(length(random_ids))
+            }
+            
             gds_summary <- capture.output({
+              cat("Input size:", input$sample_size, "\n")
               cat("Checking GDS file...\n")
               cat("Samples included in filter:",
                   random_ids,
@@ -338,7 +463,7 @@ server <- function(input, output, session) {
     }, error = function(e) {
       output$gds_summary <- renderPrint({
         snpgdsClose(f)
-        return (paste0("Error generating genotype matrix with the error:", e))
+        return (paste0("Error generating genotype matrix:", safeError(e)))
       })
     })
   })
@@ -590,9 +715,12 @@ server <- function(input, output, session) {
       updateSelectInput(session, "population_key", choices = b)
       #Render the table
       output$pop_table <- renderDT({
-        datatable(pop_data,
-                  options = list(iDisplayLength = 50),
-                  editable = T)
+        getDataTable(pop_data,editable=T)
+        # datatable(pop_data,
+        #           options = list(iDisplayLength = 50),
+        #           editable = T,
+        #           lengthMenu = list(c(10, 25, 50,100,-1), 
+        #           c('10', '25', '50',100,'All')))
       })
     }, error = function(e) {
       stop(safeError(e))
@@ -621,12 +749,14 @@ server <- function(input, output, session) {
     pop_data_live$df[, input$column_name] <- ""  # Add a new column with no values
     #Render the table
     output$pop_table <- renderDT({
-      datatable(
-        pop_data_live$df,
-        editable = TRUE,
-        caption = "Population data",
-        options = list(iDisplayLength = 50)
-      )
+      getDataTable(pop_data_live$df,editable=T,caption = "Population data")
+      # datatable(
+      #   pop_data_live$df,
+      #   editable = TRUE,
+      #   caption = "Population data",
+      #   options = list(iDisplayLength = 50,
+      #                  lengthMenu = list(c(10, 25, 50,100, -1), c('10', '25', '50',100, 'All')))
+      # )
     })
     pop_data <<- pop_data_live$df
     b <- colnames(pop_data)
@@ -734,9 +864,11 @@ server <- function(input, output, session) {
       pop_data[info, input$column_name] <<- input$pop_groupname
       #Render the table
       output$pop_table <- renderDT({
-        datatable(pop_data,
-                  options = list(iDisplayLength = 50),
-                  editable = T)
+        getDataTable(pop_data,editable=T,caption = "Population data")
+        # datatable(pop_data,
+        #           options = list(iDisplayLength = 50,
+        #                          lengthMenu = list(c(10, 25, 50,100,-1), c('10', '25', '50',100,'All'))),
+        #           editable = T)
       })
       
     }, error = function(e) {
@@ -1011,6 +1143,13 @@ server <- function(input, output, session) {
             for(g in groups.selected)
             {
                samples.g<-intersect(gds.samples,pop_data[pop_data[,histogroupcol] %in% g,histosamplecol])
+               print(gds.samples)
+               if(length(samples.g)==0)
+               {
+                  show_toast("No matching samples found",text = "No samples found!",position = "center")
+                  req(length(samples.g)>0)
+               }
+                 
                RV.g<-snpgdsSNPRateFreq(genofile, with.snp.id = TRUE,sample.id = samples.g)
                
                df.g<-data.frame(RV.g)
@@ -1025,12 +1164,6 @@ server <- function(input, output, session) {
                    c(RV[[x]],RV.g[[x]])
                },USE.NAMES = T,simplify = F)
             }
-            # output$GDS_sample <- renderPrint({
-            #   cat(samps.len)
-            # })
-            # output$GDS_snps <- renderPrint({
-            #   cat(snp.len)
-            # })
           
       }
         snpgdsClose(genofile)  

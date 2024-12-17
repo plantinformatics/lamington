@@ -91,3 +91,20 @@ showWarningToast <- function(message) {
     position = "center"
   )
 }
+
+
+getDataTable<-function(dataframe,displength=50,editable=F,caption = NULL)
+{
+  datatable(
+    dataframe,
+    options = list(
+      editable = editable,
+      caption = caption,
+      pageLength = displength,
+      lengthMenu = list(c(10, 25, 50, 100, -1), c('10', '25', '50', '100', 'All')),
+      paging = T
+    )
+  )
+}
+
+
