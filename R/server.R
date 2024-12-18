@@ -289,7 +289,7 @@ server <- function(input, output, session) {
         if (is.null(input$gds_filelist) || input$gds_filelist == "")
         {
           showWarningToast("No GDS file selected")
-          req(input$gds_filelist != "")
+          req(input$gds_filelist)
         }
         
         incProgress(0.1, detail = "Starting")
@@ -493,7 +493,6 @@ server <- function(input, output, session) {
           incProgress(0.1, detail = "Starting PCA function")
           pca_summary <- capture.output({
             cat("Checking GDS file...\n")
-            #cat("Samples included in the PCA",paste0(random_ids,collapse = ", ","\n"))
             pca <<-
               snpgdsPCA(
                 f,
@@ -598,8 +597,6 @@ server <- function(input, output, session) {
             showWarningToast("Always Selected core values missing")
           }
           req(input$always_cores)
-          # always_vector <-
-          #   unname(strsplit(gsub('"', '', input$always_cores), ' ')[[1]])
           always_vector <- unname(strsplit(input$always_cores, ' ')[[1]])
           incProgress(0.1, detail = "Always Selected Cores Confirmed")
         }
@@ -610,8 +607,6 @@ server <- function(input, output, session) {
             showWarningToast("Never Selected core values missing")
           }
           req(input$never_cores)
-          # never_vector <-
-          #   unname(strsplit(gsub('"', '', input$never_cores), ' ')[[1]])
           never_vector <- unname(strsplit(input$never_cores, ' ')[[1]])
           incProgress(0.1, detail = "Never Selected Cores Confirmed")
         }
@@ -716,11 +711,6 @@ server <- function(input, output, session) {
       #Render the table
       output$pop_table <- renderDT({
         getDataTable(pop_data,editable=T)
-        # datatable(pop_data,
-        #           options = list(iDisplayLength = 50),
-        #           editable = T,
-        #           lengthMenu = list(c(10, 25, 50,100,-1), 
-        #           c('10', '25', '50',100,'All')))
       })
     }, error = function(e) {
       stop(safeError(e))
@@ -750,13 +740,6 @@ server <- function(input, output, session) {
     #Render the table
     output$pop_table <- renderDT({
       getDataTable(pop_data_live$df,editable=T,caption = "Population data")
-      # datatable(
-      #   pop_data_live$df,
-      #   editable = TRUE,
-      #   caption = "Population data",
-      #   options = list(iDisplayLength = 50,
-      #                  lengthMenu = list(c(10, 25, 50,100, -1), c('10', '25', '50',100, 'All')))
-      # )
     })
     pop_data <<- pop_data_live$df
     b <- colnames(pop_data)
@@ -850,7 +833,6 @@ server <- function(input, output, session) {
           type = "error",
           position = "center"
         )
-        #runjs("$('#pop_groupname').focus();")
         req(input$pop_groupname)
       }
       
@@ -865,10 +847,6 @@ server <- function(input, output, session) {
       #Render the table
       output$pop_table <- renderDT({
         getDataTable(pop_data,editable=T,caption = "Population data")
-        # datatable(pop_data,
-        #           options = list(iDisplayLength = 50,
-        #                          lengthMenu = list(c(10, 25, 50,100,-1), c('10', '25', '50',100,'All'))),
-        #           editable = T)
       })
       
     }, error = function(e) {
@@ -955,17 +933,13 @@ server <- function(input, output, session) {
   
   table_fun <- function() {
     if (!is.null(lasso_data)) {
-      output$table <- DT::renderDataTable(tab2[tab2$sample.id %in% lasso_data, ],
-                                          filter = "top",
-                                          options = list(pagelength = 10))
+      output$table <- DT::renderDataTable(getDataTable(tab2[tab2$sample.id %in% lasso_data, ],displength = 10))
       output$sel_samples <- renderPrint({
         cat(lasso_data)
       })
     }
     else{
-      output$table <- DT::renderDataTable(tab2[tab2$sample.id %in% NULL, ],
-                                          filter = "top",
-                                          options = list(pagelength = 10))
+      output$table <- DT::renderDataTable(getDataTable(tab2[tab2$sample.id %in% NULL, ], displength = 10))
     }
   }
   
