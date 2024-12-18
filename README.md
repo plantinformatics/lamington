@@ -128,9 +128,8 @@ preferred browser.
 
 ##### 1. Adding Metadata/Passport Data:
 
-Metadata/passport data can be added to **Lamington** on the *Add POP Data* tab.
-
-
+Metadata/passport data from the original VCF file, if available, is
+added to the PCA data frame for future visualization.
 
 ##### 2. Data Ingestion:
 
