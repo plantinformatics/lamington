@@ -3,7 +3,9 @@
 
 The primary objective of this tool is to facilitate the creation of core diversity sets from a genetically characterized population. Leveraging Core Hunter, a widely accepted tool for defining core subsets, this application serves as a wrapper. It introduces a user-friendly graphical interface (GUI) and extends its capabilities to include features like genotype and sample filtering, PCA plot visualization, and outlier detection.
 
-image
+![image](https://github.com/user-attachments/assets/aefd2946-51ce-4040-8733-03fb027b298f)
+
+The initial development of Lamington was carried out by La Trobe University student Muhammad Tahaa Suhail as part of a Work-based Learning placement with Agriculture Victoria in the context of the Australian Grains Genebank Strategic Partnership, a $30m 5-year joint investment between the Victorian State Government and Grains Research and Development Corporation (GRDC) that aims to unlock the genetic potential of plant genetic resources for the benefit of Australian grain growers.
 
 ## Features
 
