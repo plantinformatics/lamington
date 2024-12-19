@@ -142,9 +142,11 @@ As an example, the [*passport data*](Data/241126_AGG_Chickpea_Lamington_Input.fi
 
 Provide your genotype data in VCF ([*Variant Call Format*](https://samtools.github.io/hts-specs/VCFv4.2.pdf)). 
 
-You have two options:
-* Upload directly: Select a VCF file from your local computer.
-* Choose from the server: Browse and select a VCF file from a pre-populated list on the Server.
+You can download the following [*VCF*](https://dataverse.harvard.edu/file.xhtml?fileId=10744648&version=1.0) file from the [AGG Chickpea - Release 241203](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/SQFKJW) as an example to testing **Lamington**
+
+You then have two options:
+* Upload directly: Select the VCF file from your local computer.
+* Choose from the server: Browse and select the VCF file from a pre-populated list on the Server.
 
 ![image](https://github.com/user-attachments/assets/b896f34c-ec38-49b7-8dbf-41eca0ea587c)
 
@@ -165,40 +167,53 @@ In addition, if the passport/population data has been uploaded, users can subset
 
 ##### 4. Genotype Data Filtering:
 
-Before analysis, users can filter genotype data based on Minor Allele
-Frequency (MAF) and call rate. SNP numbers are reducible through Linkage
-Disequilibrium (LD) pruning. Users define a list of SNPs for downstream
-analyses.
+Before analysis, you have the option to use the genotype data as is or filter under the *'Genotype Matrix'* tab based on the following; 
+* Minor Allele Frequency (MAF)
+* Call rate (CR).
+* Linkage Disequilibrium (LD) pruning.
+* Select specific samples by providing a list of sample IDs or selecting from the passport/population data.
+
+![image](https://github.com/user-attachments/assets/b586b04f-7917-4bc2-b149-7825a5de185c)
+
+
 
 ##### 5. PCA Calculation:
 
-After defining the set of SNPs, the app calculates Principal Component
-Analysis (PCA).
+After defining the set of SNPs, the Principal Component Analysis (PCA) can be performed under the *PCA* tab.
+![image](https://github.com/user-attachments/assets/87fcf48b-a5de-4c90-8ecd-ed7415d2a13e)
+
+To gain deeper insights from the PCA results, you can include Passport/Population information. 
+
+This allows you to:
+* Explore population-specific patterns.
+* Visualise relationships between population groups.
+
+![image](https://github.com/user-attachments/assets/d4399530-8a40-42d7-8f93-c5e393ee8609)
+
 
 ##### 6. Calculation of Core Sets:
+Lamington utilises the [**CoreHunter package**](https://cran.r-project.org/web/packages/corehunter/) to compute core sets, smaller representative subsets of your data. Lamington provides access to the main CoreHunter options, enabling you to define multiple core sets with varying sizes.  These core sets are then integrated into the PCA data frame for visualisation and analysis.
 
-Users define core sets by utilizing Core Hunter. Main Core Hunter
-options are accessible to users, allowing core set definition in various
-sizes simultaneously. Core sets are marked in the PCA data frame for
-visualization.
+![image](https://github.com/user-attachments/assets/b8a84d72-0947-4e9d-b33a-fa98bc9b835a)
 
 
 ##### 7. PCA Plot Visualization and Outlier Definition:
+* Core sets from step 6 are visualized using a PCA plot based on the PCA components from step 5. The calculated PCA is visualised with an interactive plot allowing for zooming and sample selection.
+* Sample names are displayed on cursor hover.
+* You can select and remove outliers and rerun Steps 5-7.
+* You can add samples to an exclusion list, and rerun steps 5-7.
+* Core sets are exportable as a CSV file containing the list of samples, PCA and population data and the core set.
 
-Core sets from step 5 are visualized within the PCA plot from step 4.
-The calculated PCA is visualized with an interactive plot allowing
-zooming and sample selection.Sample names are displayed on cursor hover.
-After outlier removal, users define core sets by utilizing Core Hunter.
-Users can add samples to an exclusion list, regenerating the PCA by
-revisiting step 3. Core sets from step 5 are visualized within the PCA
-plot from step 4. Core sets are exportable as a csv file containing the
-list of samples,PCA and Population data and the core set.
+![image](https://github.com/user-attachments/assets/fbefc254-e424-43c9-9249-fc6bd48ee984)
+
+![image](https://github.com/user-attachments/assets/384fb09c-5b8f-4b65-8271-1a8f9922dfe0)
+
 
 ##### 8. Final Plot
 
 User can use the addin to create final plot and customise it according
 to their needs. Selecting Tab2 from the list of data frames. \##
-Required Dependencies: - shiny - corehunter - SNPRelate - ggplot2 -
+Required Dependencies: - shiny - core hunter - SNPRelate - ggplot2 -
 shinyFiles - dplyr - DT - esquisse - scatterD3 - shinycssloaders -
 shinythemes
 
