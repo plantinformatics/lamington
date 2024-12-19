@@ -160,7 +160,7 @@ Visualisation: Using the slider users can visualise the change in Missing Rate a
 
 ![image](https://github.com/user-attachments/assets/885dd15e-2b0d-4656-b51b-f6c94e1d5f4c)
 
-In addition, if the passport/population data has been uploaded, users can subset and compare different sets within the passport/population data.
+In addition, if the metadata/passport data has been uploaded, users can subset and compare different sets within the metadata/passport data.
 
 ![image](https://github.com/user-attachments/assets/08f8f0c4-497c-4dc1-b2a4-dc13caf24db1)
 
@@ -171,7 +171,7 @@ Before analysis, you have the option to use the genotype data as is or filter un
 * Minor Allele Frequency (MAF)
 * Call rate (CR).
 * Linkage Disequilibrium (LD) pruning.
-* Select specific samples by providing a list of sample IDs or selecting from the passport/population data.
+* Select specific samples by providing a list of sample IDs or selecting from the metadata/passport data.
 
 ![image](https://github.com/user-attachments/assets/b586b04f-7917-4bc2-b149-7825a5de185c)
 
@@ -182,7 +182,7 @@ Before analysis, you have the option to use the genotype data as is or filter un
 After defining the set of SNPs, the Principal Component Analysis (PCA) can be performed under the *PCA* tab.
 ![image](https://github.com/user-attachments/assets/87fcf48b-a5de-4c90-8ecd-ed7415d2a13e)
 
-To gain deeper insights from the PCA results, you can include Passport/Population information. 
+To gain deeper insights from the PCA results, you can include metadata/passport information. 
 
 This allows you to:
 * Explore population-specific patterns.
