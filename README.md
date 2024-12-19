@@ -104,13 +104,13 @@ docker build -t  lamington  --progress=plain  .
 Building the **Lamington** Docker image will download all required
 dependencies. This process may take 10 to 15 minutes.
 
-After the build completes, run the Docker image. You can map the
+After the build is complete, run the Docker image. You can map the
 container's exposed port (defined in the [*Dockerfile*](Dockerfile)) to
 a port on your host machine. For example, to map host port 3838 to the
 container's port 3838, use the appropriate docker run command.
 
 To enable data access, mount the VCF directory (for direct uploads) and
-the GDS directory (containing saved GDS files) to corresponding
+the GDS directory (containing saved GDS files) to the corresponding
 locations within the container.
 
 ``` sh
@@ -126,9 +126,17 @@ preferred browser.
 
 ## Workflow
 
-##### 1. Adding Metadata/Passport Data:
+##### 1. Importing Metadata/Passport Data:
 
-Metadata/passport data can be added to **Lamington** on the *Add POP Data* tab.
+Metadata/passport data can be imported into **Lamington** on the *'Add POP Data'* tab.
+
+![image](https://github.com/user-attachments/assets/2e7aadd6-dfa4-4bbb-885f-e0883e7b5195)
+
+As an example, the [*passport data*](Data/241126_AGG_Chickpea_Lamington_Input.fixID.txt) extracted using [*Genolink*](https://github.com/plantinformatics/genolink) for the [AGG Chickpea - Release 241203](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/SQFKJW) is imported into **Lamington** as shown in the figure below
+
+![image](https://github.com/user-attachments/assets/81997dfd-b283-4eea-8ac7-df9b070ec78e)
+
+
 
 ##### 2. Data Ingestion:
 
@@ -144,7 +152,7 @@ Missing Rate and MAF on the histogram on the right.
 
 ##### 4. Genotype Data Filtering:
 
-Prior to analysis, users can filter genotype data based on Minor Allele
+Before analysis, users can filter genotype data based on Minor Allele
 Frequency (MAF) and call rate. SNP numbers are reducible through Linkage
 Disequilibrium (LD) pruning. Users define a list of SNPs for downstream
 analyses.
