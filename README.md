@@ -141,7 +141,7 @@ As an example, the [*passport data*](Data/241126_AGG_Chickpea_Lamington_Input.fi
 
 ##### 2. Genotype Data Ingestion:
 
-Provide your genotype data in VCF ([*Variant Call Format*](https://samtools.github.io/hts-specs/VCFv4.2.pdf)). 
+In the *'Convert VCF File tab'*, provide your genotype data in VCF ([*Variant Call Format*](https://samtools.github.io/hts-specs/VCFv4.2.pdf)). 
 
 You can download the following [*VCF*](https://dataverse.harvard.edu/file.xhtml?fileId=10744648&version=1.0) file from the [AGG Chickpea - Release 241203](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/SQFKJW) as an example to testing **Lamington**
 
@@ -151,6 +151,7 @@ You then have two options:
 
 ![image](https://github.com/user-attachments/assets/b896f34c-ec38-49b7-8dbf-41eca0ea587c)
 
+* After entering a GDS file name (without the .gds extension which will be appended automatically), the 'Convert and Display' button is displayed which you can click to convert the input VCF file to GDS.
 * Once the VCF file has been uploaded with a meaningful name provided for the GDS file, the data can then be loaded on the *'Select GDS file' tab*
 
 ![image](https://github.com/user-attachments/assets/77e39740-eaae-48e0-82bb-b7eaf74af87e)
