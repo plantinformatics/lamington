@@ -28,13 +28,13 @@ growers.
 -   **Flexibility of Deployment**: Designed for both local and server
     deployment, accommodating the analysis of large datasets.
 -   **Accessibility**: The source code is open source and available on
-    Github under a GPL license. Docker builds are provided for easy
+    GitHub is under a GPL license. Docker builds are provided for easy
     deployment on any operating system.
 -   **Visualisation Functions**: Users can interactively plot statistics
     such as minor allele frequency (MAF) and call rate, defining
     suitable cutoffs.
 -   **PCA Plotting Functions**: Users can generate PCA plots for the
-    population and color data points based on sample information from an
+    population and colour data points based on sample information from an
     associated spreadsheet.
 -   **Core Hunter Functions**: Exposes the main functions and parameters
     of Core Hunter through a graphical interface.
@@ -138,17 +138,30 @@ As an example, the [*passport data*](Data/241126_AGG_Chickpea_Lamington_Input.fi
 
 
 
-##### 2. Data Ingestion:
+##### 2. Genotype Data Ingestion:
 
-Genotypes (VCF Format) - Accepts genotype data in VCF format. Locally,
-users can load files from the local filesystem. On a server, a
-designated folder lists VCF files for user selection. Sample
-Passport/Metadata - Users can input metadata/passport data for VCF
-samples in CSV/TSV and/or Excel formats. \
+Provide your genotype data in VCF ([*Variant Call Format*](https://samtools.github.io/hts-specs/VCFv4.2.pdf)). 
+
+You have two options:
+* Upload directly: Select a VCF file from your local computer.
+* Choose from the server: Browse and select a VCF file from a pre-populated list on the Server.
+
+![image](https://github.com/user-attachments/assets/b896f34c-ec38-49b7-8dbf-41eca0ea587c)
+
+* Once the VCF file has been uploaded with a meaningful name provided for the GDS file, the data can then be loaded on the *'Select GDS file' tab*
+
+![image](https://github.com/user-attachments/assets/77e39740-eaae-48e0-82bb-b7eaf74af87e)
 
 ##### 3. Filtering
-Visualisation: Using the slider users can visualise the change in
-Missing Rate and MAF on the histogram on the right.
+
+Visualisation: Using the slider users can visualise the change in Missing Rate and MAF on the histogram on the right.
+
+![image](https://github.com/user-attachments/assets/885dd15e-2b0d-4656-b51b-f6c94e1d5f4c)
+
+In addition, if the passport/population data has been uploaded, users can subset and compare different sets within the passport/population data.
+
+![image](https://github.com/user-attachments/assets/08f8f0c4-497c-4dc1-b2a4-dc13caf24db1)
+
 
 ##### 4. Genotype Data Filtering:
 
