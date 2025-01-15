@@ -129,16 +129,23 @@ preferred browser.
 
 ## Workflow
 
+##### 0. Creating User/Logging in
+Lamington uses a simple user profile management to help manage data uploads. If using Lamington for the first time, you will be required to create a user account as shown on the screenshot below
+![image](https://github.com/user-attachments/assets/73819e17-74cf-48bb-b616-9b2245a87ecf)
+
+Once registered, you will be prompted to log in as in the screenshot below
+![image](https://github.com/user-attachments/assets/8ce6be6c-d4a7-4c09-a45a-594843c79983)
+
+
 ##### 1. Importing Metadata/Passport Data:
 
 Metadata/passport data can be imported into **Lamington** on the *'Add POP Data'* tab.
 
-![image](https://github.com/user-attachments/assets/2e7aadd6-dfa4-4bbb-885f-e0883e7b5195)
+![image](https://github.com/user-attachments/assets/c775c6d2-5f1b-4946-84b5-acaf63e850b9)
 
 As an example, the [*passport data*](Data/241126_AGG_Chickpea_Lamington_Input.fixID.txt) extracted using [*Genolink*](https://github.com/plantinformatics/genolink) for the [AGG Chickpea - Release 241203](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/SQFKJW) is imported into **Lamington** as shown in the figure below
 
-
-
+![image](https://github.com/user-attachments/assets/a8b042dd-ae2a-4f19-a9ac-c5ef138cd503)
 
 
 ##### 2. Genotype Data Ingestion:
@@ -150,23 +157,27 @@ You can download the following [*VCF*](https://dataverse.harvard.edu/file.xhtml?
 You then have two options:
 * Upload directly: Select the VCF file from your local computer.
 * Choose from the server: Browse and select the VCF file from a pre-populated list on the Server.
+![image](https://github.com/user-attachments/assets/a995780d-4b6b-4fe7-8bbd-7c55329e1c7b)
 
-![image](https://github.com/user-attachments/assets/b896f34c-ec38-49b7-8dbf-41eca0ea587c)
 
 * After entering a GDS file name (without the .gds extension which will be appended automatically), the 'Convert and Display' button is displayed which you can click to convert the input VCF file to GDS.
 * Once the VCF file has been uploaded with a meaningful name provided for the GDS file, the data can then be loaded on the *'Select GDS file' tab*
 
-![image](https://github.com/user-attachments/assets/77e39740-eaae-48e0-82bb-b7eaf74af87e)
+![image](https://github.com/user-attachments/assets/7cd72a0b-caf9-4289-915b-f4615e77c942)
+
+
 
 ##### 3. Filtering
 
 Visualisation: Using the slider users can visualise the change in Missing Rate and MAF on the histogram on the right.
 
-![image](https://github.com/user-attachments/assets/885dd15e-2b0d-4656-b51b-f6c94e1d5f4c)
+![image](https://github.com/user-attachments/assets/83f68ebb-e3a8-4937-836e-df02537d2df2)
+
 
 In addition, if the metadata/passport data has been uploaded, users can subset and compare different sets within the metadata/passport data.
 
-![image](https://github.com/user-attachments/assets/08f8f0c4-497c-4dc1-b2a4-dc13caf24db1)
+![image](https://github.com/user-attachments/assets/6f1c57f6-0f33-4b9c-86b7-9a4d89961f44)
+
 
 
 ##### 4. Genotype Data Filtering:
@@ -176,29 +187,30 @@ Before analysis, you have the option to use the genotype data as is or filter un
 * Call rate (CR).
 * Linkage Disequilibrium (LD) pruning.
 * Select specific samples by providing a list of sample IDs or selecting from the metadata/passport data.
+![image](https://github.com/user-attachments/assets/26997117-608e-434a-83e9-ef688efee92b)
 
-![image](https://github.com/user-attachments/assets/b586b04f-7917-4bc2-b149-7825a5de185c)
 
 
 
 ##### 5. PCA Calculation:
 
 After defining the set of SNPs, the Principal Component Analysis (PCA) can be performed under the *PCA* tab.
-![image](https://github.com/user-attachments/assets/87fcf48b-a5de-4c90-8ecd-ed7415d2a13e)
+![image](https://github.com/user-attachments/assets/5e419ff9-fbc3-4eeb-b2ff-447535c06dfd)
+
 
 To gain deeper insights from the PCA results, you can include metadata/passport information. 
 
 This allows you to:
 * Explore population-specific patterns.
 * Visualise relationships between population groups.
-
-![image](https://github.com/user-attachments/assets/d4399530-8a40-42d7-8f93-c5e393ee8609)
+![image](https://github.com/user-attachments/assets/afcdf041-85e8-474d-8507-3872cb4f5d47)
 
 
 ##### 6. Calculation of Core Sets:
 Lamington utilises the [**CoreHunter package**](https://cran.r-project.org/web/packages/corehunter/) to compute core sets, smaller representative subsets of your data. Lamington provides access to the main CoreHunter options, enabling you to define multiple core sets with varying sizes.  These core sets are then integrated into the PCA data frame for visualisation and analysis.
 
-![image](https://github.com/user-attachments/assets/b8a84d72-0947-4e9d-b33a-fa98bc9b835a)
+![image](https://github.com/user-attachments/assets/ca1aa767-5661-4119-841b-22ed76064b9e)
+
 
 
 ##### 7. PCA Plot Visualization and Outlier Definition:
@@ -207,10 +219,7 @@ Lamington utilises the [**CoreHunter package**](https://cran.r-project.org/web/p
 * You can select and remove outliers and rerun Steps 5-7.
 * You can add samples to an exclusion list, and rerun steps 5-7.
 * Core sets are exportable as a CSV file containing the list of samples, PCA and population data and the core set.
-
-![image](https://github.com/user-attachments/assets/fbefc254-e424-43c9-9249-fc6bd48ee984)
-
-![image](https://github.com/user-attachments/assets/384fb09c-5b8f-4b65-8271-1a8f9922dfe0)
+![image](https://github.com/user-attachments/assets/1809390f-8c60-4411-8459-627535149ddd)
 
 
 ##### 8. Final Plot
