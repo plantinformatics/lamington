@@ -811,7 +811,8 @@ server <- function(input, output, session) {
           f <- snpgdsOpen(gds_filepath)
           incProgress(0.1, detail = "Running PCA function")
           pca_summary <- capture.output({
-            cat("Checking GDS file...\n")
+            cat("Running PCA...started:",Sys.time())
+            starttime<-
             pca <<-
               snpgdsPCA(
                 f,
@@ -820,7 +821,7 @@ server <- function(input, output, session) {
                 autosome.only = as.logical(input$autosome),
                 num.thread = input$PCA_Thread
               )
-            cat("Summary complete.\n")
+            cat("PCA completed at:",Sys.time())
           })
           incProgress(0.5, detail = "PCA Complete")
           
