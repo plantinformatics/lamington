@@ -20,7 +20,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN R -e "install.packages('BiocManager', repos='http://cran.rstudio.com/')"
 RUN R -e "install.packages('rhandsontable', repos='http://cran.rstudio.com/')"
 RUN R -e "install.packages(c('rJava','corehunter'), repos='http://cran.rstudio.com/')"
-RUN R -e "install.packages(c('ggplot2', 'shinyFiles', 'DT','esquisse','scatterD3','shinycssloaders','shinythemes','plotly','shinyWidgets','bcrypt','RSQLite','DBI','shinyjs','RColorBrewer'), repos='http://cran.rstudio.com/')"
+RUN R -e "install.packages(c('ggplot2', 'shinyFiles', 'DT','esquisse','scatterD3','shinycssloaders','shinythemes','plotly','shinyWidgets','bcrypt','RSQLite','DBI','shinyjs','RColorBrewer','shinyalert'), repos='http://cran.rstudio.com/')"
 
 # Install BiocManager and then install SNPRelate
 RUN R -e "BiocManager::install('SNPRelate')"

@@ -17,6 +17,7 @@ library(bcrypt)
 library(RSQLite)
 library(rJava)
 library(RColorBrewer)
+library(shinyalert)
 # Database connection
 # Set the maximum upload size to 10 GB
 options(shiny.maxRequestSize = 10 * 1024^3)  # 10 GB

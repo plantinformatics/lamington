@@ -5,7 +5,7 @@ server <- function(input, output, session) {
   #Session based variables
   histo.df <- NULL
   RV <- NULL
-  tab2 <- NULL
+  tab2 <<- NULL
   pca <- NULL
   random_ids <- NULL
   snpset <- NULL
@@ -27,9 +27,49 @@ server <- function(input, output, session) {
   gds_files <- NULL
   pca_files<- NULL
   pca_start <- NULL
-
+  pca_saved <-NULL
   # Reactive value to track user session
   user_session <- reactiveValues(user = NULL)
+  
+  showPCACalcOptions<-function(option)
+  {
+      if(option)
+      {
+        output$show_loadcalcpca<-renderUI({
+          tagList(
+            selectInput(
+              "pca_filelist",
+              "Select a PCA file:",
+              selected = "",
+              choices = pca_saved
+            ),
+            actionButton(
+              "get_PCA",
+              HTML("<span class='glyphicon glyphicon-import'></span> Load PCA")
+            )
+          )
+        })
+      }else
+      {
+        output$show_loadcalcpca<-renderUI({
+          tagList(
+            verbatimTextOutput("autosome_out"),
+            numericInput(
+              "PCA_Thread",
+              "Enter CPU Cores",
+              value = 4,
+              min = 1
+            ),
+            actionButton(
+              "get_PCA",
+              HTML(
+                "<span class='glyphicon glyphicon-play-circle'></span> Start PCA"
+              )
+            )
+          )
+        })
+      }
+  }
   
   #Options to create VCFs, GDS and database directory
   tryCatch({
@@ -256,8 +296,25 @@ server <- function(input, output, session) {
       
       #Option to check and load pca_data
       pca_start<<-gsub("[^a-zA-Z0-9 ]", "_",input$gds_filelist)
-      print(pca_start)
+      #check if any PCAs have been saved
+      pca_saved<<-list.files(pca_data,pattern = paste0(pca_start,".*"))
       
+      if(length(pca_saved)>0)
+      {
+        output$show_pcaoptions <- renderUI({
+        tagList(tags$hr(),
+                radioButtons(
+                  "pca_loadOptions",
+                  "Load saved PCA",
+                  choices = c(Yes = "yes", No = "no"),
+                  selected = ""
+                )
+          )
+        })
+      }
+      else{
+        showPCACalcOptions(F)
+      }
       
     }, error = function(e) {
       # return a safeError if a parsing error occurs
@@ -796,71 +853,157 @@ server <- function(input, output, session) {
     !is.null(pca)
   })
   outputOptions(output, "pca_status", suspendWhenHidden = FALSE)
-  
+  observeEvent(input$pca_loadOptions,{
+    if(input$pca_loadOptions=='yes')
+      showPCACalcOptions(T)
+    else
+      showPCACalcOptions(F)
+  })
   
   observeEvent(input$get_PCA, {
     tryCatch({
       if (is.null(input$gds_filelist) || input$gds_filelist == "") {
         showWarningToast("No GDS file selected")
       }
-      req(input$gds_filelist, input$PCA_Thread)
-      withProgress(message = 'Principal Component Analysis Started', value = 0.1, {
-        gds_filepath <- file.path(data_path, input$gds_filelist)
-        incProgress(0.1, detail = "Detect File Path")
-        if (file.exists(gds_filepath)) {
-          f <- snpgdsOpen(gds_filepath)
-          incProgress(0.1, detail = "Running PCA function")
-          pca_summary <- capture.output({
-            cat("Running PCA...started:",Sys.time())
-            starttime<-
-            pca <<-
-              snpgdsPCA(
-                f,
-                sample.id = random_ids,
-                snp.id = snpset.id,
-                autosome.only = as.logical(input$autosome),
-                num.thread = input$PCA_Thread
-              )
-            cat("PCA completed at:",Sys.time())
+      if(length(pca_saved)==0||input$pca_loadOptions=='no')
+      {
+        confirmSweetAlert(
+          session = session,
+          inputId = "confirm_save_pca",
+          type = "info",
+          title = paste0(
+            "Do you want to save this PCA?'",
+            "'"
+          ),
+          text = "PCA will be saved for reload!",
+          btn_labels = c("No", "Yes")
+        )
+        
+      }
+      else{
+        load(paste0(pca_data,"/",input$pca_filelist))
+        tab2<<-tab2
+        random_ids<<-filter.data$sample.id
+        snpset.id<<-filter.data$snp.id
+        snps<<-snps
+        filter.data <- list(
+          sample.id = random_ids,
+          snp.id = snpset.id,
+          autosome.only = as.logical(input$autosome)
+        )
+        output$pca_summary<-renderPrint({
+          cat("PCA and data data results loaded\n")
+          cat("=====================================================================\n")
+          cat("PCA was run with the following details:\n")
+          print(pca_summary)
           })
-          incProgress(0.5, detail = "PCA Complete")
-          
-          tab <- data.frame(
-            sample.id = pca$sample.id,
-            EV1 = pca$eigenvect[, 1],
-            EV2 = pca$eigenvect[, 2],
-            EV3 = pca$eigenvect[, 3],
-            EV4 = pca$eigenvect[, 4],
-            stringsAsFactors = FALSE
-          )
-          incProgress(0.2, detail = "Converting to Data Frame Tab2")
-          snpgdsClose(f)
-          tab2 <<- tab
-          incProgress(0.1, detail = "Complete")
-          output$pca_summary <- renderPrint({
-            pca_summary
-          })
-          output$pca_dt <- renderDataTable(datatable(tab2, editable = F))
-          c <- colnames(tab2)
-          updateSelectInput(session, "data_primarykey", choices = c)
-        }
-        else {
-          output$pca_summary <- renderPrint({
-            showWarningToast("No GDS file found")
-            return("GDS File not found")
-          })
-        }
-        output$pca_status <- reactive({
-          !is.null(pca)
-        })
-        outputOptions(output, "pca_status", suspendWhenHidden = FALSE)
+        output$pca_dt <- renderDataTable(datatable(tab2, editable = F))
+        c <- colnames(tab2)
+        delay(2000, updateCheckboxInput(session, "autosome", value = filter.data$autosome.only)) 
+        updateSelectInput(session, "data_primarykey", choices = c)
+      }
+      output$pca_status <- reactive({
+        !is.null(pca)
       })
+      outputOptions(output, "pca_status", suspendWhenHidden = FALSE)
+      
     }, error = function(e) {
       snpgdsClose(f)
       output$pca_summary <- renderPrint({
         return (safeError(e))
       })
     })
+  })
+  
+  pca_save <- reactiveValues(confirm_save = NULL)
+  # Reactive value to store the text input
+  enteredText <- reactiveVal()
+  
+  observeEvent(input$confirm_save_pca,{
+    pca_save$confirm_save <- input$confirm_save_pca
+    req(input$gds_filelist, input$PCA_Thread)
+    # if(pca_save$confirm_save)
+    # {
+    #   showModal(modalDialog(
+    #     textInput("textInput", "Please provide name of file:"),
+    #     actionButton("submitText", "Submit")
+    #   ))
+    # }
+    withProgress(message = 'Principal Component Analysis Started', value = 0.1, {
+      gds_filepath <- file.path(data_path, input$gds_filelist)
+      incProgress(0.1, detail = "Detect File Path")
+      if (file.exists(gds_filepath)) {
+        f <- snpgdsOpen(gds_filepath)
+        incProgress(0.1, detail = "Running PCA function")
+        pca_summary <- capture.output({
+          cat("Running PCA...started:",Sys.time())
+          starttime<-
+            pca <<-
+            snpgdsPCA(
+              f,
+              sample.id = random_ids,
+              snp.id = snpset.id,
+              autosome.only = as.logical(input$autosome),
+              num.thread = input$PCA_Thread
+            )
+          cat("PCA completed at:",Sys.time())
+        })
+        incProgress(0.5, detail = "PCA Complete")
+        
+        tab <- data.frame(
+          sample.id = pca$sample.id,
+          EV1 = pca$eigenvect[, 1],
+          EV2 = pca$eigenvect[, 2],
+          EV3 = pca$eigenvect[, 3],
+          EV4 = pca$eigenvect[, 4],
+          stringsAsFactors = FALSE
+        )
+        incProgress(0.2, detail = "Converting to Data Frame Tab2")
+        snpgdsClose(f)
+        tab2 <<- tab
+        incProgress(0.1, detail = "Complete")
+        output$pca_summary <- renderPrint({
+          pca_summary
+        })
+        output$pca_dt <- renderDataTable(datatable(tab2, editable = F))
+        c <- colnames(tab2)
+        updateSelectInput(session, "data_primarykey", choices = c)
+      }
+      else {
+        output$pca_summary <- renderPrint({
+          showWarningToast("No GDS file found")
+          return("GDS File not found")
+        })
+      }
+    })
+    
+    if(pca_save$confirm_save)
+    {
+      filter.data <- list(
+        sample.id = random_ids,
+        snp.id = snpset.id,
+        autosome.only = as.logical(input$autosome)
+      )
+      pca.savename<-paste0(pca_start, "_PCA_", Sys.Date())
+      save(tab2,
+           filter.data,pca_summary,snps,
+           file = paste0(pca_data, "/",pca.savename,".RData"))
+      show_toast(
+        "PCA saved",
+        paste0("PCA saved successfully as ",pca.savename),
+        type = "info",
+        position = "center"
+      )
+    }
+  })
+  
+  # Observe the submit button in the popup
+  observeEvent(input$submitText, {
+    output$pca_textname <- reactive({
+      return(input$textInput)
+    })
+    outputOptions(output, "pca_textname", suspendWhenHidden = FALSE)
+    removeModal() # Close the popup
   })
   
   observeEvent(input$add_toPCA, {
@@ -885,21 +1028,8 @@ server <- function(input, output, session) {
       tab2 <<- inner_join(tab2, pop_data[, c(input$data_primarykey,
                                              as.character(input$population_key))], by = input$data_primarykey)
       output$pca_dt <- renderDataTable(datatable(tab2, editable = F))
-      output$final_df <- renderTable({
-        if (input$disp == "head") {
-          return(head(tab2))
-        }
-        else {
-          return(tab2)
-        }
-      })
     }, error = function(e) {
-      show_toast(
-        title = "Error",
-        type = "error",
-        text = safeError(e),
-        position = "center"
-      )
+      output$pca_summary<-renderPrint(safeError(e))
     })
   })
   
@@ -1781,25 +1911,37 @@ server <- function(input, output, session) {
       })
     })
   })
+  # Function to check if a package is loaded, unload it, and then reload it
+  reload_package <- function(package_name) {
+    if (paste0("package:", package_name) %in% search()) {
+      detach(paste0("package:", package_name), unload = TRUE, character.only = TRUE,force = T)
+      message(paste(package_name, "unloaded."))
+    }
+    library(package_name, character.only = TRUE)
+    message(paste(package_name, "reloaded."))
+  }
   
   observeEvent(input$set_mem, {
     tryCatch({
       checkUser(user_session$user, session)
-      cat("Setting heap")
+      cat("Setting heap memory\n")
       if (is.null(input$Corehunter_Me) ||
           input$Corehunter_Me == 0 || input$Corehunter_Me == "")
       {
-        show_toast("",
+        show_toast("Error!",
                    text = "Heapmemory should be > 0",
                    type = "error",
                    position = "center")
         return()
       }
-      mem_size <- paste0("-Xmx", input$Corehunter_Me, "G")
+      mem_size <- paste0("-Xmx", input$Corehunter_Me, "g -Xms",input$Corehunter_Me,"g")
       
       output$java_mem <- renderPrint({
         print(options(java.parameters = mem_size))
+        reload_package("rJava")
+        reload_package("corehunter")
         print(library(corehunter))
+        print(J("java.lang.Runtime")$getRuntime()$maxMemory() / (1024^4))
       })
     }, error = function(e) {
       output$java_mem <- renderPrint({

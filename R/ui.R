@@ -381,19 +381,8 @@ navbarPage(
       width = 2,
       tags$label("Principal Component Analysis (PCA)"),
       #selectInput("autosome", "Use autosomal SNPs", selected = "TRUE", choices = c("TRUE"="TRUE","FALSE"="FALSE")),
-      verbatimTextOutput("autosome_out"),
-      numericInput(
-        "PCA_Thread",
-        "Enter CPU Cores",
-        value = 4,
-        min = 1
-      ),
-      actionButton(
-        "get_PCA",
-        HTML(
-          "<span class='glyphicon glyphicon-play-circle'></span> Start PCA"
-        )
-      ),
+      uiOutput("show_pcaoptions"),
+      uiOutput("show_loadcalcpca"),
       #-----Option to map pop data to PCA data
       conditionalPanel(
         condition = "output.csvtest && input.get_PCA>0",
