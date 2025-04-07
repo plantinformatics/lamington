@@ -116,13 +116,13 @@ navbarPage(
       tags$hr()
     ),
     mainPanel(
-      DTOutput("pop_table") %>% shinycssloaders::withSpinner(2, custom.css = TRUE),
+      DTOutput("pop_table") %>% shinycssloaders::withSpinner(8),
       # Button to clear selected rows (conditionally displayed)
       uiOutput("clearButton"),
       tags$hr(),
       #textOutput("csvtest"),
       #textOutput("pop_colname")
-      #tableOutput("contents") %>% shinycssloaders::withSpinner(2, custom.css = TRUE)
+      #tableOutput("contents") %>% shinycssloaders::withSpinner(8)
     )
   )),
   ##-------Tab panel for uploading VCFs and converting to GDS format---
@@ -170,7 +170,7 @@ navbarPage(
       )
     ),
     mainPanel(
-      verbatimTextOutput("output_text", placeholder = FALSE) %>% shinycssloaders::withSpinner(2, custom.css = TRUE)
+      verbatimTextOutput("output_text", placeholder = FALSE) %>% shinycssloaders::withSpinner(8)
     )
   )),
   ##-------Tab panel for selecting GDS file----------------------------
@@ -200,8 +200,8 @@ navbarPage(
       uiOutput("deleteGDSButton")
     ),
     mainPanel(
-      verbatimTextOutput("file_summary") %>% shinycssloaders::withSpinner(2, custom.css = TRUE),
-      tableOutput("tab2_df") %>% shinycssloaders::withSpinner(2, custom.css = TRUE)
+      verbatimTextOutput("file_summary") %>% shinycssloaders::withSpinner(8),
+      tableOutput("tab2_df") %>% shinycssloaders::withSpinner(8)
     )
   )),
   ##--------------Tab panel for plotting histogram---------------------
@@ -240,9 +240,9 @@ navbarPage(
     ),
     mainPanel(
       #fluidRow(
-      plotOutput(outputId = "histo") %>% shinycssloaders::withSpinner(2, custom.css = TRUE),
+      plotOutput(outputId = "histo") %>% shinycssloaders::withSpinner(8),
       tags$hr(),
-      plotOutput(outputId = "histo2") %>% shinycssloaders::withSpinner(2, custom.css = TRUE)
+      plotOutput(outputId = "histo2") %>% shinycssloaders::withSpinner(8)
       #)
     )
   )),
@@ -368,9 +368,9 @@ navbarPage(
       ),
     ),
     mainPanel(
-      verbatimTextOutput("gds_summary") %>% shinycssloaders::withSpinner(2, custom.css = TRUE),
+      verbatimTextOutput("gds_summary") %>% shinycssloaders::withSpinner(8),
       tags$br(),
-      DTOutput("final_df") %>% shinycssloaders::withSpinner(2, custom.css = TRUE),
+      DTOutput("final_df") %>% shinycssloaders::withSpinner(8),
       tags$br(),
       #verbatimTextOutput("pca_status",placeholder = T)
     )
@@ -423,8 +423,8 @@ navbarPage(
       
     ),
     mainPanel(
-      verbatimTextOutput("pca_summary") %>% shinycssloaders::withSpinner(2, custom.css = TRUE),
-      DTOutput("pca_dt") %>% shinycssloaders::withSpinner(2, custom.css = TRUE),
+      verbatimTextOutput("pca_summary") %>% shinycssloaders::withSpinner(8),
+      DTOutput("pca_dt") %>% shinycssloaders::withSpinner(8),
       
     )
   )),
@@ -503,7 +503,7 @@ navbarPage(
       )
     ),
     mainPanel(
-      verbatimTextOutput("hunter_summary") %>% shinycssloaders::withSpinner(2, custom.css = TRUE)
+      verbatimTextOutput("hunter_summary") %>% shinycssloaders::withSpinner(8)
     )
   )),
   
@@ -602,7 +602,7 @@ navbarPage(
         shinycssloaders::withSpinner(
           scatterD3Output("scatterPlot", height = "700px"),
           2,
-          custom.css = TRUE
+          color = "transparent", color.background = "#0dc5c1"
         ),
         wellPanel(
           tags$label("Selected Samples:"),
