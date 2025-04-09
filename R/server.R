@@ -89,7 +89,7 @@ server <- function(input, output, session) {
     {
       dir.create(vcf_path, recursive = T)
     }
-    if(!dir.create(pca_data))
+    if(!dir.exists(pca_data))
     {
       dir.create(pca_data,recursive = T)
     }
@@ -845,14 +845,21 @@ server <- function(input, output, session) {
   })
   
   
-  ################################# Run PCA Process #################################
+  ################################# PCA Tab #################################
   
+  observeEvent(input$mainnavbar, {
+    if(input$mainnavbar == "PCA") {
+        showPCACalcOptions(F)
+    }
+  })
+
   output$pca_summary <- renderPrint(return())
   output$pca_dt <- renderDataTable(return())
   output$pca_status <- reactive({
     !is.null(pca)
   })
   outputOptions(output, "pca_status", suspendWhenHidden = FALSE)
+
   observeEvent(input$pca_loadOptions,{
     if(input$pca_loadOptions=='yes')
       showPCACalcOptions(T)
