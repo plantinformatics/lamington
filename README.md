@@ -49,7 +49,7 @@ growers.
 ## Installation
 
 To run **Lamington** on your local machine, follow these initial setup
-steps by first downloading [*R*](https://cran.r-project.org/) and [*RStudio*](https://posit.co/download/rstudio-desktop/)(optional). 
+steps by first downloading [*R*](https://cran.r-project.org/), [*Java*](https://www.java.com/en/download/) and [*RStudio*](https://posit.co/download/rstudio-desktop/)(optional). 
 
 Execute the following commands once installed to configure the R environment:
 
