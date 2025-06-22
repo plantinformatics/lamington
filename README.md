@@ -49,16 +49,14 @@ growers.
 ## Installation
 
 To run **Lamington** on your local machine, follow these initial setup
-steps by first downloading [*R*](https://cran.r-project.org/) and [*RStudio*](https://posit.co/download/rstudio-desktop/)(optional). 
+steps by first downloading [*R*](https://cran.r-project.org/), [*Java*](https://www.java.com/en/download/) and [*RStudio*](https://posit.co/download/rstudio-desktop/)(optional). 
 
 Execute the following commands once installed to configure the R environment:
 
 **Install the dependencies**
 
 ``` sh
-install.packages(c('shiny', 'ggplot2', 'shinyFiles', 'dplyr','rjava', 'corehunter','SNPRelate',
-                'DT','esquisse','scatterD3','shinycssloaders','shinythemes','rJava','corehunter'))
-                
+install.packages(c('shiny', 'ggplot2', 'shinyFiles', 'dplyr', 'corehunter', 'rhandsontable', 'DBI', 'shinyjs', 'bcrypt', 'RSQLite', 'shinyalert', 'plotly', 'DT','esquisse','scatterD3','shinycssloaders','shinythemes','rJava','corehunter', 'BiocManager'))
 if (!requireNamespace("BiocManager",quietly = TRUE))
   install.packages("BiocManager")
 BiocManager::install("SNPRelate")
